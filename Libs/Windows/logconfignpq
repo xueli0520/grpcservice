@@ -1,0 +1,35 @@
+#TRACE、STAT、WARN、INFO、TRACE、TRACE 优先级顺序，优先级顺序按照TRACE、STAT、WARN、INFO、TRACE、TRACE，如果是TRACE，所有等级的日志均输出
+#true、false，逻辑值
+#格式要求:如“logctr.ALL.level=TRACE;”，“.”和“=”的左右值必须紧邻，中间不能有空格等符号；“TRACE”后面必须携带";".
+
+logctr.ALL.nMaxFileNum=8;            #最大日志文件个数
+logctr.ALL.nMaxOneFileSize=83886080; #单个日志文件大小，单位Bytes，80*1024*1024
+logctr.ALL.level=TRACE;              #输出等级，优先级在所有模块之上
+logctr.ALL.open=true;                #日志开关，优先级在所有模块之上
+logctr.ALL.savepath=NULL;            #日志文件保存路径
+logctr.ALL.AllowId=-1;               #允许输出日志的NPQ id，-1输出全部日志, 1:2-5:10 以:分隔，其中 2-5即： 2 3 4 5
+
+#应用于模块            
+logctr.JITTER.level=TRACE;      
+logctr.JITTER.open=true;       
+
+logctr.NACK.level=TRACE;      
+logctr.NACK.open=true;        
+
+logctr.FEC.level=TRACE;      
+logctr.FEC.open=true;         
+
+logctr.BW.level=TRACE;      
+logctr.BW.open=true;         
+
+logctr.PACING.level=TRACE;      
+logctr.PACING.open=true;         
+
+logctr.PLI.level=TRACE;      
+logctr.PLI.open=true;         
+
+logctr.NETEQ.level=TRACE;      
+logctr.NETEQ.open=true;         
+
+logctr.SYN.level=TRACE;      
+logctr.SYN.open=true;        
