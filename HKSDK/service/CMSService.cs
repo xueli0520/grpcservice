@@ -2,15 +2,15 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.IO;
-using GrpcService.HKSDK.manager;
+using System.Threading.Tasks;
 
 namespace GrpcService.HKSDK.service
 {
     public class CMSService
     {
-        private readonly ConcurrentDictionary<string, DeviceConnection> _devices = new();
-
+        //private readonly ConcurrentDictionary<string, DeviceConnection> _devices = new();
+        private OptimizedDeviceManager _deviceManager;
+        private readonly ILogger<CMSService> _logger;
         /// <summary>
         /// 根据当前平台获取库文件路径
         /// </summary>
@@ -57,8 +57,10 @@ namespace GrpcService.HKSDK.service
             Console.WriteLine($"Warning: 未找到平台 {RuntimeInformation.OSDescription} 的库文件 {libraryName}");
             return Path.Combine(basePath, libraryName);
         }
-        public void Cms_Init()
+        public CMSService(ILogger<CMSService> logger)
         {
+            _deviceManager = new OptimizedDeviceManager((ILogger<OptimizedDeviceManager>)logger);
+            _logger = logger;
             // 记录平台信息
             _logger.LogInformation($"当前平台: {HCOTAPCMS.GetPlatformInfo()}");
             _logger.LogInformation($"所需库文件: {string.Join(", ", HCOTAPCMS.GetRequiredLibraries())}");
@@ -102,6 +104,7 @@ namespace GrpcService.HKSDK.service
             }
 
             HCOTAPCMS.OTAP_CMS_SetLogToFile(3, CMSServiceHelpers.sCurPath + "/SdkLog", false);
+            _logger = logger;
         }
 
         public void Cms_SubscribeMsg()
@@ -223,7 +226,7 @@ namespace GrpcService.HKSDK.service
                 //均视为设备上线
                 Console.WriteLine("ENUM_OTAP_CMS_DEV_ON, lUserID:" + lUserID + ", DeviceID:" + strDeviceID);
                 //设备上线时，注册设备连接信息
-                
+                await _deviceManager.RegisterDeviceAsync(lUserID, struDevInfo);
                 if (pInBuffer != IntPtr.Zero && dwInLen > 0)
                 {
                     HCOTAPCMS.OTAP_CMS_SERVER_INFO struServerInfo = (HCOTAPCMS.OTAP_CMS_SERVER_INFO)Marshal.PtrToStructure(pInBuffer, typeof(HCOTAPCMS.OTAP_CMS_SERVER_INFO));
@@ -235,13 +238,13 @@ namespace GrpcService.HKSDK.service
             else if (dwDataType == HCOTAPCMS.ENUM_OTAP_CMS_DEV_DAS_PINGREQ_CALLBACK)
             {
                 Console.WriteLine("ENUM_OTAP_CMS_DEV_HEARTBEAT, lUserID:" + lUserID + ", DeviceID:" + strDeviceID);
-                _devices[strDeviceID].LastHeartbeat = DateTime.Now;
+                _deviceManager.UpdateDeviceHeartbeat(strDeviceID, lUserID);
             }
             else if (dwDataType == HCOTAPCMS.ENUM_OTAP_CMS_DEV_OFF || dwDataType == HCOTAPCMS.ENUM_OTAP_CMS_DEV_SESSIONKEY_ERROR ||
                     dwDataType == HCOTAPCMS.ENUM_OTAP_CMS_DEV_DAS_OTAPKEY_ERROR)
             {
                 //均视为设备下线
-                _devices[strDeviceID].IsConnected = false;
+                _deviceManager.DisconnectDeviceAsync(strDeviceID, lUserID);
                 Console.WriteLine("ENUM_OTAP_CMS_DEV_OFF, lUserID:" + lUserID + ", DeviceID:" + strDeviceID);
             }
             else if (dwDataType == HCOTAPCMS.ENUM_OTAP_CMS_DEV_AUTH)
@@ -278,7 +281,6 @@ namespace GrpcService.HKSDK.service
                 Marshal.StructureToPtr(struCmsDasInfo, pInBuffer, false);
                 Console.WriteLine("ENUM_OTAP_CMS_DAS_REQ, byServerID:" + strServerID);
             }
-
             return true;
         }
 
@@ -448,14 +450,4 @@ namespace GrpcService.HKSDK.service
 
     }
 
-    // 设备连接信息模型
-    public class DeviceConnection
-    {
-        public string? DeviceId { get; set; }
-        public string? DeviceIP { get; set; }
-        public int? DevicePort { get; set; }
-        public int? UserId { get; set; }
-        public bool? IsConnected { get; set; }
-        public DateTime? LastHeartbeat { get; set; }
-    }
 }

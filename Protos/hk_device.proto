@@ -3,7 +3,7 @@ syntax = "proto3";
 package hk_device;
 
 option go_package = "github.com/racoondad/lite-backend/plugins/hk_otap/proto";
-option csharp_namespace = "HikDeviceService";
+option csharp_namespace = "GrpcService";
 
 // 海康设备 gRPC 服务
 service HikDevicegRPCService {
