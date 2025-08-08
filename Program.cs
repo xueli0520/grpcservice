@@ -1,55 +1,121 @@
-using GrpcService.Services;
-using GrpcService;
-using GrpcService.HKSDK.service;
+ï»¿using GrpcService.Services;
+using System;
+using GrpcService.HKSDK;
+using Serilog;
+using GrpcService.Models;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using System.IO;
+
 
 var builder = WebApplication.CreateBuilder(args);
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾
+// å¸¸é‡æå–
+const int DefaultRetainedFileCountLimit = 30;
+const int DefaultMaxReceiveMessageSize = 4194304;
+const int DefaultMaxSendMessageSize = 4194304;
+const int DefaultGrpcPort = 5000;
+const int DefaultMaxConcurrentCalls = 100;
+const string DefaultHost = "0.0.0.0";
+const string LogDir = "logs";
+const string LogFilePattern = ".log";
 
-// ÅäÖÃKestrel·şÎñÆ÷
-builder.WebHost.ConfigureKestrel(serverOptions =>
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: Path.Combine(LogDir, LogFilePattern),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: DefaultRetainedFileCountLimit,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {SourceContext}: {Message}{NewLine}{Exception}")
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+builder.Services.Configure<GrpcServerConfiguration>(
+    builder.Configuration.GetSection("GrpcServer"));
+builder.Services.Configure<HikDeviceConfiguration>(
+    builder.Configuration.GetSection("HikDevice"));
+builder.Services.Configure<LibraryPathsConfiguration>(
+    builder.Configuration.GetSection("LibraryPaths"));
+
+// ×¢ï¿½ï¿½ï¿½ï¿½ï¿½
+builder.Services.AddGrpc(options =>
 {
-    // HTTP/2 ÅäÖÃÓÃÓÚgRPC
-    serverOptions.ConfigureEndpointDefaults(listenOptions =>
+    var grpcConfig = builder.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
+    options.MaxReceiveMessageSize = grpcConfig?.MaxReceiveMessageSize ?? DefaultMaxReceiveMessageSize;
+    options.MaxSendMessageSize = grpcConfig?.MaxSendMessageSize ?? DefaultMaxSendMessageSize;
+});
+
+// ×¢Ô¶
+builder.Services.AddSingleton<IDeviceLoggerService, DeviceLoggerService>();
+builder.Services.AddSingleton<IGrpcRequestQueueService, GrpcRequestQueueService>();
+builder.Services.AddSingleton<DeviceManager>();
+builder.Services.AddSingleton<CMSService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<CMSService>());
+
+builder.Services.AddHostedService(provider => provider.GetService<DeviceManager>()!);
+builder.Services.AddHostedService(provider =>
+   provider.GetService<IGrpcRequestQueueService>() as GrpcRequestQueueService ??
+   throw new InvalidOperationException("Unable to resolve GrpcRequestQueueService"));
+
+builder.WebHost.ConfigureKestrel((context, serverOptions) =>
+{
+    var grpcConfig = context.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
+    var host = grpcConfig?.Host ?? DefaultHost;
+    var port = grpcConfig?.Port ?? DefaultGrpcPort;
+
+    serverOptions.Listen(System.Net.IPAddress.Parse(host), port, listenOptions =>
     {
         listenOptions.Protocols = HttpProtocols.Http2;
     });
 
-    // ÅäÖÃÏŞÖÆ
-    serverOptions.Limits.MaxConcurrentConnections = 1000;
-    serverOptions.Limits.MaxConcurrentUpgradedConnections = 1000;
-    serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
-});
-// Ìí¼ÓgRPC·şÎñ
-builder.Services.AddGrpc(options =>
-{
-    options.MaxReceiveMessageSize = 10 * 1024 * 1024; // 10MB
-    options.MaxSendMessageSize = 10 * 1024 * 1024;    // 10MB
-    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
-});
-builder.Services.Configure<DeviceManagerOptions>(
-    builder.Configuration.GetSection("DeviceManager"));
-
-// ×¢²á·şÎñ
-builder.Services.AddSingleton<CMSService>();
-builder.Services.AddSingleton<OptimizedDeviceManager>();
-builder.Services.AddHostedService<OptimizedDeviceManager>(provider =>
-    provider.GetRequiredService<OptimizedDeviceManager>());
-
-builder.Services.AddHealthChecks()
-    .AddCheck<DeviceManagerHealthCheck>("device_manager")
-    .AddCheck<CMSServiceHealthCheck>("cms_service");
-// ÅäÖÃÈÕÖ¾
-builder.Services.AddLogging(configure =>
-{
-    configure.AddConsole();
-    configure.AddDebug();
-    configure.SetMinimumLevel(LogLevel.Information);
+    serverOptions.Limits.MaxConcurrentConnections = grpcConfig?.MaxConcurrentCalls ?? DefaultMaxConcurrentCalls;
+    serverOptions.Limits.MaxConcurrentUpgradedConnections = grpcConfig?.MaxConcurrentCalls ?? DefaultMaxConcurrentCalls;
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.MapGrpcService<HikDeviceService>();
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+// Ğ¼Üµ
+app.UseRouting();
 
-app.Run();
+// ×¢ï¿½ï¿½gRPCï¿½ï¿½ï¿½ï¿½
+app.MapGrpcService<HikDeviceService>();
+
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½
+app.MapGet("/health", async (DeviceManager deviceManager, IGrpcRequestQueueService queueService) =>
+{
+    var deviceStats = deviceManager.GetDeviceStatistics();
+    var queueStats = queueService.GetQueueStatistics();
+
+    return Results.Ok(new
+    {
+        status = "healthy",
+        timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+        device_statistics = deviceStats,
+        queue_statistics = queueStats,
+        memory_usage = GC.GetTotalMemory(false)
+    });
+});
+
+app.MapGet("/", () =>
+    "ï¿½ï¿½ï¿½ï¿½ï¿½è±¸gRPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¡ï¿½Ê¹ï¿½ï¿½gRPCï¿½Í»ï¿½ï¿½Ë½ï¿½ï¿½ï¿½Í¨ï¿½Å¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: /health");
+
+// ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½
+try
+{
+    Log.Information("æ­£åœ¨å¯åŠ¨æµ·åº·è®¾å¤‡gRPCæœåŠ¡...");
+
+    var grpcConfig = app.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
+    Log.Information("æœåŠ¡åœ°å€: {Host}:{Port}", grpcConfig?.Host ?? DefaultHost, grpcConfig?.Port ?? DefaultGrpcPort);
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Ó¦Ê§");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

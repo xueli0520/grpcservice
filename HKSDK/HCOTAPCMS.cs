@@ -1,11 +1,12 @@
-﻿using System.Runtime.InteropServices;
+﻿using Google.Protobuf;
+using System.Runtime.InteropServices;
 
-namespace GrpcService.HKSDK.service
+namespace GrpcService.HKSDK
 {
     public class HCOTAPCMS
     {
         private const string WINDOWS_DLL = "HCOTAPCMS.dll";
-        private const string LINUX_SO = "libhcnetsdk.so";
+        private const string LINUX_SO = "libHCOTAPCMS.so";
         private static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
@@ -37,203 +38,203 @@ namespace GrpcService.HKSDK.service
         #region windows SDK
         // CN: 初始化CMS组件。
         // EN: Initialize CMS component.
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_Init", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_Init_Windows();
         // CN: 反初始化CMS组件
         // EN: Deinitialize CMS component
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_Fini", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_Fini_Windows();
 
         // CN: 获取CMS组件错误码
         // EN: Get CMS component error code
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_GetLastError", CallingConvention = CallingConvention.StdCall)]
         public static extern uint OTAP_CMS_GetLastError_Windows();
 
         // CN: 获取CMS组件版本
         // EN: Get CMS component version
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_GetBuildVersion", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_GetBuildVersion_Windows();
 
         // CN: CMS启动监听
         // EN: CMS start listening
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StartListen", CallingConvention = CallingConvention.StdCall)]
         public static extern int OTAP_CMS_StartListen_Windows(ref OTAP_CMS_LISTEN_PARAM lpListenParam);
 
         // CN: CMS停止监听
         // EN: CMS stop listening
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StopListen", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_StopListen_Windows(int iListenHandle);
 
         // CN: CMS强制注销设备
         // EN: CMS force logout device
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ForceLogout", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_ForceLogout_Windows();
 
         // CN: CMS获得公私钥
         // EN: CMS get private and public keys
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_GetPriPubKey", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_GetPriPubKey_Windows(int iCryptoType, ref OTAP_CMS_PRI_PUB_KEY pECDHKey);
 
         // CN: 获得SessionID
         // EN: Get SessionID
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
-        public static extern uint OTAP_CMS_GetSevrSessionId_Windows(IntPtr pServSessionIDBuf, uint dwBufLen);
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_GetSevrSessionId", CallingConvention = CallingConvention.StdCall)]
+        public static extern uint OTAP_CMS_GetSevrSessionId_Windows(nint pServSessionIDBuf, uint dwBufLen);
 
         // CN: 设置本地日志
         // EN: Set local log
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SetLogToFile", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_SetLogToFile_Windows(int iLogLevel, string pLogDir, bool dwAutoDel);
 
         // CN: CMS通知设备开始实时取流
         // EN: CMS notify device to start live streaming
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_StartLiveStreaming_Windows(int iUserID, int enumStreamingMode, IntPtr pParamIn, IntPtr pParamOut);
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StartLiveStreaming", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool OTAP_CMS_StartLiveStreaming_Windows(int iUserID, int enumStreamingMode, nint pParamIn, nint pParamOut);
 
         // CN: CMS参数配置
         // EN: CMS parameter configuration
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ConfigDev", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_ConfigDev_Windows(int iUserID, OTAP_CMS_CONFIG_DEV_ENUM enumMsg, ref OTAP_CMS_CONFIG_DEV_PARAM pParam);
 
         // CN: 开启语音对讲
         // EN: Start voice intercom
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StartVoice", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_StartVoice_Windows(int iUserID, ref OTAP_CMS_STARTVOICE_IN pVoiceIn, out OTAP_CMS_STARTVOICE_OUT pVoiceOut);
 
         // CN: 停止语音对讲
         // EN: Stop voice intercom
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StopVoice", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_StopVoice_Windows(int iUserID, ref OTAP_CMS_STOPVOICE_PARAM pStopParam);
 
         // CN: ISAPI透传
         // EN: ISAPI pass-through
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ISAPIPassThrough", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_ISAPIPassThrough_Windows(int iUserID, ref OTAP_CMS_ISAPI_PT_PARAM pParam);
 
         // CN: CMS订阅消息
         // EN: CMS subscribe message
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_SubscribeMsg_Windows(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, IntPtr pParam);
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SubscribeMsg", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool OTAP_CMS_SubscribeMsg_Windows(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, nint pParam);
 
         // CN: 开启OTAP协议设备报警上报
         // EN: Start OTAP protocol device alarm reporting
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StartAlarm", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_StartAlarm_Windows(int iUserID, ref OTAP_CMS_STARTALARM_PARAM pParam);
 
         // CN: 配置简单存储订阅消息回调
         // EN: Configure simple storage subscription message callback
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SubscribeStorageMsg", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_SubscribeStorageMsg_Windows(ref OTAP_CMS_STORAGE_SUBSCRIBE_CB_PARAM pParam);
 
         // CN: 响应简单存储消息.
         // EN: Respond to simple storage message.
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ResponseStorageMsg", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_ResponseStorageMsg_Windows(int iUserID, ref OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM pParam);
 
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff);
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SetSDKInitCfg", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool OTAP_CMS_SetSDKInitCfg_Windows(int enumType, nint lpInBuff);
 
-        [DllImport(WINDOWS_DLL, CallingConvention = CallingConvention.StdCall)]
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ResponseMsg", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_ResponseMsg_Windows(int lUserID, int enumMsg, ref OTAP_CMS_RESPONSE_MSG_PARAM pParam);
         #endregion
         #region Linux SDK
         // CN: 初始化CMS组件。
         // EN: Initialize CMS component.
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_Init", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_Init_Linux();
         // CN: 反初始化CMS组件
         // EN: Deinitialize CMS component
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_Fini", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_Fini_Linux();
 
         // CN: 获取CMS组件错误码
         // EN: Get CMS component error code
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_GetLastError", CallingConvention = CallingConvention.Cdecl)]
         public static extern uint OTAP_CMS_GetLastError_Linux();
 
         // CN: 获取CMS组件版本
         // EN: Get CMS component version
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_GetBuildVersion", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_GetBuildVersion_Linux();
 
         // CN: CMS启动监听
         // EN: CMS start listening
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StartListen", CallingConvention = CallingConvention.Cdecl)]
         public static extern int OTAP_CMS_StartListen_Linux(ref OTAP_CMS_LISTEN_PARAM lpListenParam);
 
         // CN: CMS停止监听
         // EN: CMS stop listening
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StopListen", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_StopListen_Linux(int iListenHandle);
 
         // CN: CMS强制注销设备
         // EN: CMS force logout device
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ForceLogout", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_ForceLogout_Linux();
 
         // CN: CMS获得公私钥
         // EN: CMS get private and public keys
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_GetPriPubKey", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_GetPriPubKey_Linux(int iCryptoType, ref OTAP_CMS_PRI_PUB_KEY pECDHKey);
 
         // CN: 获得SessionID
         // EN: Get SessionID
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint OTAP_CMS_GetSevrSessionId_Linux(IntPtr pServSessionIDBuf, uint dwBufLen);
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_GetSevrSessionId", CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint OTAP_CMS_GetSevrSessionId_Linux(nint pServSessionIDBuf, uint dwBufLen);
 
         // CN: 设置本地日志
         // EN: Set local log
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SetLogToFile", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_SetLogToFile_Linux(int iLogLevel, string pLogDir, bool dwAutoDel);
 
         // CN: CMS通知设备开始实时取流
         // EN: CMS notify device to start live streaming
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_StartLiveStreaming_Linux(int iUserID, int enumStreamingMode, IntPtr pParamIn, IntPtr pParamOut);
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StartLiveStreaming", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool OTAP_CMS_StartLiveStreaming_Linux(int iUserID, int enumStreamingMode, nint pParamIn, nint pParamOut);
 
         // CN: CMS参数配置
         // EN: CMS parameter configuration
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ConfigDev", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_ConfigDev_Linux(int iUserID, OTAP_CMS_CONFIG_DEV_ENUM enumMsg, ref OTAP_CMS_CONFIG_DEV_PARAM pParam);
 
         // CN: 开启语音对讲
         // EN: Start voice intercom
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StartVoice", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_StartVoice_Linux(int iUserID, ref OTAP_CMS_STARTVOICE_IN pVoiceIn, out OTAP_CMS_STARTVOICE_OUT pVoiceOut);
 
         // CN: 停止语音对讲
         // EN: Stop voice intercom
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StopVoice", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_StopVoice_Linux(int iUserID, ref OTAP_CMS_STOPVOICE_PARAM pStopParam);
 
         // CN: ISAPI透传
         // EN: ISAPI pass-through
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ISAPIPassThrough", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_ISAPIPassThrough_Linux(int iUserID, ref OTAP_CMS_ISAPI_PT_PARAM pParam);
 
         // CN: CMS订阅消息
         // EN: CMS subscribe message
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_SubscribeMsg_Linux(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, IntPtr pParam);
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SubscribeMsg", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool OTAP_CMS_SubscribeMsg_Linux(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, nint pParam);
 
         // CN: 开启OTAP协议设备报警上报
         // EN: Start OTAP protocol device alarm reporting
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StartAlarm", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_StartAlarm_Linux(int iUserID, ref OTAP_CMS_STARTALARM_PARAM pParam);
 
         // CN: 配置简单存储订阅消息回调
         // EN: Configure simple storage subscription message callback
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SubscribeStorageMsg", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_SubscribeStorageMsg_Linux(ref OTAP_CMS_STORAGE_SUBSCRIBE_CB_PARAM pParam);
 
         // CN: 响应简单存储消息.
         // EN: Respond to simple storage message.
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ResponseStorageMsg", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_ResponseStorageMsg_Linux(int iUserID, ref OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM pParam);
 
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_SetSDKInitCfg_Linux(Int32 enumType, IntPtr lpInBuff);
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SetSDKInitCfg", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool OTAP_CMS_SetSDKInitCfg_Linux(int enumType, nint lpInBuff);
 
-        [DllImport(LINUX_SO, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ResponseMsg", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_ResponseMsg_Linux(int lUserID, int enumMsg, ref OTAP_CMS_RESPONSE_MSG_PARAM pParam);
         #endregion
 
@@ -296,7 +297,7 @@ namespace GrpcService.HKSDK.service
 
         // CN: 获得SessionID
         // EN: Get SessionID
-        public static uint OTAP_CMS_GetSevrSessionId(IntPtr pServSessionIDBuf, uint dwBufLen)
+        public static uint OTAP_CMS_GetSevrSessionId(nint pServSessionIDBuf, uint dwBufLen)
         {
             return IsWindows ? OTAP_CMS_GetSevrSessionId_Windows(pServSessionIDBuf, dwBufLen) : OTAP_CMS_GetSevrSessionId_Linux(pServSessionIDBuf, dwBufLen);
         }
@@ -310,7 +311,7 @@ namespace GrpcService.HKSDK.service
 
         // CN: CMS通知设备开始实时取流
         // EN: CMS notify device to start live streaming
-        public static bool OTAP_CMS_StartLiveStreaming(int iUserID, int enumStreamingMode, IntPtr pParamIn, IntPtr pParamOut)
+        public static bool OTAP_CMS_StartLiveStreaming(int iUserID, int enumStreamingMode, nint pParamIn, nint pParamOut)
         {
             return IsWindows ? OTAP_CMS_StartLiveStreaming_Windows(iUserID, enumStreamingMode, pParamIn, pParamOut) : OTAP_CMS_StartLiveStreaming_Linux(iUserID, enumStreamingMode, pParamIn, pParamOut);
         }
@@ -345,7 +346,7 @@ namespace GrpcService.HKSDK.service
 
         // CN: CMS订阅消息
         // EN: CMS subscribe message
-        public static bool OTAP_CMS_SubscribeMsg(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, IntPtr pParam)
+        public static bool OTAP_CMS_SubscribeMsg(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, nint pParam)
         {
             return IsWindows ? OTAP_CMS_SubscribeMsg_Windows(enumSubscribeMsg, pParam) : OTAP_CMS_SubscribeMsg_Linux(enumSubscribeMsg, pParam);
         }
@@ -371,7 +372,7 @@ namespace GrpcService.HKSDK.service
             return IsWindows ? OTAP_CMS_ResponseStorageMsg_Windows(iUserID, ref pParam) : OTAP_CMS_ResponseStorageMsg_Linux(iUserID, ref pParam);
         }
 
-        public static bool OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff)
+        public static bool OTAP_CMS_SetSDKInitCfg(int enumType, nint lpInBuff)
         {
             return IsWindows ? OTAP_CMS_SetSDKInitCfg_Windows(enumType, lpInBuff) : OTAP_CMS_SetSDKInitCfg_Linux(enumType, lpInBuff);
         }
@@ -482,7 +483,7 @@ namespace GrpcService.HKSDK.service
 
             // CN: 报警信息缓冲区
             // EN: Alarm information buffer
-            public IntPtr pAlarmInfoBuf;
+            public nint pAlarmInfoBuf;
 
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
             // CN: 保留
@@ -540,7 +541,7 @@ namespace GrpcService.HKSDK.service
 
         // CN: CMS设备信息参数
         // EN: CMS device information parameters
-        [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_DEV_REG_INFO
         {
             [MarshalAs(UnmanagedType.Struct)]
@@ -571,9 +572,9 @@ namespace GrpcService.HKSDK.service
             public uint dwDevTypeDisplayLen;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] byRes0;
-            public IntPtr pDevType;
-            public IntPtr pDevTypeDisplay;
-            public IntPtr pDevProtocols;
+            public nint pDevType;
+            public nint pDevTypeDisplay;
+            public nint pDevProtocols;
             public byte byDevProtocolVersion;
             public byte byProtocolVersion;
             public byte byDevProtocolsCount;
@@ -601,7 +602,7 @@ namespace GrpcService.HKSDK.service
 
 
         // CN: CMS响应消息参数        
-        [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_RESPONSE_MSG_PARAM
         {
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
@@ -614,10 +615,10 @@ namespace GrpcService.HKSDK.service
             public byte[] szDomain;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
             public byte[] szIdentifier;
-            public IntPtr pInBuf;
+            public nint pInBuf;
             public uint dwInBufSize;
             public uint dwSequence;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 256, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes;
 
             public void Init()
@@ -633,13 +634,13 @@ namespace GrpcService.HKSDK.service
 
         // CN: IP结构体
         // EN: IP structure
-        [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_IPADDRESS
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
             public char[] szIP;
             public short wPort;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 6, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes;
 
             public void Init()
@@ -651,18 +652,18 @@ namespace GrpcService.HKSDK.service
 
         // CN: DAS参数
         // EN: DAS parameters
-        [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_DAS_INFO
         {
             public OTAP_IPADDRESS struDevAddr;// CN: IP地址
             // EN: IP address
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] byDomain;// CN: 域名
             // EN: Domain name
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] byServerID;// CN: [in]ServerID. 用于标识不同的DAS服务
             // EN: [in]ServerID. Used to identify different DAS services
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 248, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 248, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes;// CN: 保留字节大小
             // EN: Reserved byte size
 
@@ -674,7 +675,7 @@ namespace GrpcService.HKSDK.service
             }
         }
 
-        public delegate bool OTAP_CMS_RegisterCallback(int iUserID, uint dwDataType, IntPtr pOutBuffer, uint dwOutLen, IntPtr pInBuffer, uint dwInLen, IntPtr pUserData);
+        public delegate bool OTAP_CMS_RegisterCallback(int iUserID, uint dwDataType, nint pOutBuffer, uint dwOutLen, nint pInBuffer, uint dwInLen, nint pUserData);
 
         // CN: CMS监听参数
         // EN: CMS listening parameters
@@ -684,17 +685,17 @@ namespace GrpcService.HKSDK.service
             // EN: IP address
             public OTAP_CMS_RegisterCallback fnCB; // CN: 注册回调
             // EN: Register callback
-            public IntPtr pUserData;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
+            public nint pUserData;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes;
         }
 
-        [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_PRI_PUB_KEY
         {
-            public IntPtr pPriKeyBuf;        // CN: [OUT]
+            public nint pPriKeyBuf;        // CN: [OUT]
             // EN: [OUT]
-            public IntPtr pPubKeyBuf;        // CN: [OUT]
+            public nint pPubKeyBuf;        // CN: [OUT]
             // EN: [OUT]
             public uint dwPriKeyBufLen;      // CN: [IN]
             // EN: [IN]
@@ -713,38 +714,38 @@ namespace GrpcService.HKSDK.service
 
         // CN: 开启实时取流输入参数
         // EN: Start live streaming input parameters
-        [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_STARTLIVESTREAMING_PARAM_IN
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
             public byte[] szServerSessionID;
             public uint dwChannel;
             public uint dwStreamType;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
             public byte[] szServerIPv4;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
             public byte[] szServerIPv6;
             public ushort wServerTcpPort;
             public ushort wServerUdpPort;
             public ushort wServerTLSPort;
             public byte byMode;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 1, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes1;
-            public IntPtr pPubKey;
+            public nint pPubKey;
             public uint dwPubKeyLen;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 252, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 252, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes;
         }
 
         // CN: CMS开启实时取流输出参数
         // EN: CMS start live streaming output parameters
-        [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_STARTLIVESTREAMING_PARAM_OUT
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.I1)]
             public byte[] szDevSessionID;
             public int iAsyncHandle;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes;
         }
 
@@ -753,18 +754,18 @@ namespace GrpcService.HKSDK.service
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_CONFIG_DEV_PARAM
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
             public char[] szChildID;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
             public char[] szLocalIndex;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szResourceType;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szDomain;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szIdentifier;
-            public IntPtr pInBuf;
-            public IntPtr pOutBuf;
+            public nint pInBuf;
+            public nint pOutBuf;
             public uint dwInBufSize;
             public uint dwOutBufSize;
             public int iAsyncHandle;
@@ -788,7 +789,7 @@ namespace GrpcService.HKSDK.service
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_STARTVOICE_IN
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
             public byte[] szServerSessionID;
 
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
@@ -797,7 +798,7 @@ namespace GrpcService.HKSDK.service
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
             public string szServerIPv6;
 
-            public IntPtr pPubKey;
+            public nint pPubKey;
             public uint dwPubKeyLen;
             public uint dwChannel;
             public ushort wServerTcpPort;
@@ -874,7 +875,7 @@ namespace GrpcService.HKSDK.service
             public OTAP_CMS_InterfaceAsyncCallback fnCB;
             // CN: 接口使用的独立异步回调函数
             // EN: Independent asynchronous callback function used by the interface
-            public IntPtr pUserData;
+            public nint pUserData;
             // CN: 接口使用的独立异步回调函数对应的用户指针
             // EN: User pointer corresponding to the independent asynchronous callback function used by the interface
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 112)]
@@ -883,7 +884,7 @@ namespace GrpcService.HKSDK.service
             // EN: Reserved bytes
         }
 
-        public delegate bool OTAP_CMS_StopLiveStreamingCallback(int iUserID, OTAP_CMS_STREAMING_MODE_ENUM enumStreamingMode, IntPtr pParam);
+        public delegate bool OTAP_CMS_StopLiveStreamingCallback(int iUserID, OTAP_CMS_STREAMING_MODE_ENUM enumStreamingMode, nint pParam);
 
         // CN: CMS接口异步回调信息
         // EN: CMS interface asynchronous callback information
@@ -902,7 +903,7 @@ namespace GrpcService.HKSDK.service
             public uint dwErrorNo;
             // CN: [out] 错误码. 成功时为0
             // EN: [out] Error code. It is 0 for success
-            public IntPtr pOutBuffer;
+            public nint pOutBuffer;
             // CN: [out] 设备响应数据
             // EN: [out] Device response data
             public uint dwOutLen;
@@ -917,32 +918,32 @@ namespace GrpcService.HKSDK.service
             // EN: Reserved bytes
         }
 
-        public delegate void OTAP_CMS_InterfaceAsyncCallback(ref OTAP_CMS_INTERFACE_ASYNC_CB_INFO pData, IntPtr pUserData);
+        public delegate void OTAP_CMS_InterfaceAsyncCallback(ref OTAP_CMS_INTERFACE_ASYNC_CB_INFO pData, nint pUserData);
 
         // CN: CMS ISAPI透传参数
         // EN: CMS ISAPI pass-through parameters
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
         public struct OTAP_CMS_ISAPI_PT_PARAM
         {
-            public IntPtr pRequestUrl;
+            public nint pRequestUrl;
             // CN: 请求URL
             // EN: Request URL
             public uint dwRequestUrlLen;
             // CN: 请求URL长度
             // EN: Request URL length
-            public IntPtr pCondBuffer;
+            public nint pCondBuffer;
             // CN: 条件缓冲区
             // EN: Condition buffer
             public uint dwCondSize;
             // CN: 条件缓冲区大小
             // EN: Condition buffer size
-            public IntPtr pInBuffer;
+            public nint pInBuffer;
             // CN: 输入缓冲区
             // EN: Input buffer
             public uint dwInSize;
             // CN: 输入缓冲区大小
             // EN: Input buffer size
-            public IntPtr pOutBuffer;
+            public nint pOutBuffer;
             // CN: 输出缓冲区
             // EN: Output buffer
             public uint dwOutSize;
@@ -960,7 +961,7 @@ namespace GrpcService.HKSDK.service
             public OTAP_CMS_InterfaceAsyncCallback fnCB;
             // CN: 异步回调函数
             // EN: Asynchronous callback function
-            public IntPtr pUserData;
+            public nint pUserData;
             // CN: 异步回调函数对应的用户指针
             // EN: User pointer corresponding to the asynchronous callback function
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
@@ -993,17 +994,17 @@ namespace GrpcService.HKSDK.service
             public byte[] szDomain;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
             public byte[] szIdentifier;
-            public IntPtr pOutBuf;
+            public nint pOutBuf;
             public uint dwOutBufSize;
             public uint dwSequence;
-            public IntPtr pDeviceID;
+            public nint pDeviceID;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 252)]
             public byte[] byRes;
         }
 
         // CN: 设置订阅回调
         // EN: Set subscribe callback
-        public delegate bool OTAP_CMS_SubscribeMsgCallback(int iUserID, ref OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData);
+        public delegate bool OTAP_CMS_SubscribeMsgCallback(int iUserID, ref OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam, nint pUserData);
 
         // CN: 设置订阅消息回调参数
         // EN: Set subscribe message callback parameters
@@ -1013,7 +1014,7 @@ namespace GrpcService.HKSDK.service
             public OTAP_CMS_SubscribeMsgCallback fnCB;
             // CN: 订阅消息回调
             // EN: Subscribe message callback
-            public IntPtr pUserData;
+            public nint pUserData;
             // CN: 用户指针
             // EN: User pointer
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
@@ -1027,7 +1028,7 @@ namespace GrpcService.HKSDK.service
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_SUBSCRIBEMSG_TOPIC_FILTER_PARAM
         {
-            public IntPtr pTopicFilter;
+            public nint pTopicFilter;
             // CN: Topic过滤
             // EN: Topic filter
             public uint dwTopicFilterLen;
@@ -1066,7 +1067,7 @@ namespace GrpcService.HKSDK.service
             public ushort wServerTLSPort;
             public uint dwKeepAliveSec;
             public uint dwSubscribeInfoLen;
-            public IntPtr pSubscribeInfo;
+            public nint pSubscribeInfo;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
             public byte[] byRes;
         }
@@ -1097,19 +1098,19 @@ namespace GrpcService.HKSDK.service
             // CN: 符合OTAP_CMS_STORAGE_SUBSCRIBE_TYPE_ENUM
             // EN: Conforms to OTAP_CMS_STORAGE_SUBSCRIBE_TYPE_ENUM
             public uint dwSequence;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
             public char[] szDevID;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
             public char[] szChildID;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
             public char[] szLocalIndex;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szResourceType;
-            public IntPtr pOutBuf;
+            public nint pOutBuf;
             public uint dwOutBufSize;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] byRes1;
-            public IntPtr pDeviceID;
+            public nint pDeviceID;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 244)]
             public byte[] byRes;
 
@@ -1126,7 +1127,7 @@ namespace GrpcService.HKSDK.service
 
         // CN: 存储消息回调
         // EN: Storage message callback
-        public delegate void OTAP_CMS_StorageCallback(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData);
+        public delegate void OTAP_CMS_StorageCallback(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam, nint pUserData);
 
         // CN: CMS存储订阅回调参数
         // EN: CMS storage subscription callback parameters
@@ -1134,7 +1135,7 @@ namespace GrpcService.HKSDK.service
         public struct OTAP_CMS_STORAGE_SUBSCRIBE_CB_PARAM
         {
             public OTAP_CMS_StorageCallback fnCB;
-            public IntPtr pUserData;
+            public nint pUserData;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
             public byte[] byRes;
         }
@@ -1144,9 +1145,9 @@ namespace GrpcService.HKSDK.service
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_UPLOAD_OBJECT_OUTPUT_PARAM
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szDomain;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szIdentifier;
             public byte byEncrypt;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 127)]
@@ -1167,17 +1168,17 @@ namespace GrpcService.HKSDK.service
         {
             public uint dwType;
             public uint dwSequence;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
             public char[] szChildID;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
             public char[] szLocalIndex;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szResourceType;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szDomain;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szIdentifier;
-            public IntPtr pInBuf;
+            public nint pInBuf;
             public uint dwInBufSize;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
             public byte[] byRes;
@@ -1198,18 +1199,18 @@ namespace GrpcService.HKSDK.service
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
             public char[] szStorageId;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szBucketName;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
             public char[] szObjectKey;
             public OTAP_IPADDRESS struAddress;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
             public char[] szAccessKey;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
             public char[] szSecretKey;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
             public char[] szRegion;
             public uint bHttps;
             public byte byEncrypt;
@@ -1222,8 +1223,8 @@ namespace GrpcService.HKSDK.service
             public byte[] byRes3;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] byRes4;
-            public IntPtr pCustomHeaders;
-            public IntPtr pCustomUrl;
+            public nint pCustomHeaders;
+            public nint pCustomUrl;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 104)]
             public byte[] byRes;
 
@@ -1248,9 +1249,9 @@ namespace GrpcService.HKSDK.service
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct OTAP_CMS_REPORT_OBJECT_OUTPUT_PARAM
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
             public char[] szStorageId;
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
             public char[] szBucket;
             public uint dwResult;
             public byte byEncrypt;
@@ -1288,7 +1289,7 @@ namespace GrpcService.HKSDK.service
             public byte byAlgorithm;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
             public byte[] byRes1;
-            public IntPtr pCustomUrl;
+            public nint pCustomUrl;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 176)]
             public byte[] byRes;
         }
@@ -1298,7 +1299,7 @@ namespace GrpcService.HKSDK.service
         [StructLayout(LayoutKind.Sequential)]
         public struct OTAP_CMS_DOWNLOAD_OBJECT_OUTPUT_PARAM
         {
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
             public char[] szStorageId;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
             public byte[] byRes;

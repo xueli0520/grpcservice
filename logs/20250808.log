@@ -1,0 +1,493 @@
+2025-08-08 16:41:15 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 16:41:15 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 16:41:15 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 16:41:15 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 16:41:15 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 16:41:15 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 16:47:01 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libcrypto"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:47:03 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libssl"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:47:04 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libiconv2"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:53:04 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 16:53:04 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 16:53:04 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 16:53:04 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 16:53:04 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 16:53:04 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 16:53:11 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libcrypto"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:53:11 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libssl"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:53:14 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libiconv2"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:53:15 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libz"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:53:15 [ERR] GrpcService.HKSDK.CMSService: CMS服务初始化失败
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+2025-08-08 16:53:15 [ERR] Microsoft.Extensions.Hosting.Internal.Host: Hosting failed to start
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+2025-08-08 16:53:15 [INF] GrpcService.Services.GrpcRequestQueueService: 开始清理gRPC请求队列服务...
+2025-08-08 16:53:15 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务清理完成
+2025-08-08 16:53:15 [INF] GrpcService.HKSDK.DeviceManager: 开始清理设备管理器资源...
+2025-08-08 16:53:15 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器已释放所有资源，清理设备数量: 0
+2025-08-08 16:53:15 [INF] GrpcService.HKSDK.CMSService: 开始清理CMS服务资源...
+2025-08-08 16:53:15 [INF] GrpcService.HKSDK.CMSService: CMS服务资源清理完成
+2025-08-08 16:53:15 [FTL] : Ӧʧ
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at Program.<Main>$(String[] args) in E:\国控\code\hk_grpc_service\GrpcService\Program.cs:line 112
+2025-08-08 16:55:05 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 16:55:05 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 16:55:05 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 16:55:05 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 16:55:05 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 16:55:05 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 16:55:19 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libcrypto"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL '/Libs/Windows/HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:55:28 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libssl"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL '/Libs/Windows/HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:55:56 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libiconv2"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL '/Libs/Windows/HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:55:57 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libz"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL '/Libs/Windows/HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:55:57 [ERR] GrpcService.HKSDK.CMSService: CMS服务初始化失败
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_Init_Windows' in DLL '/Libs/Windows/HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+2025-08-08 16:55:58 [ERR] Microsoft.Extensions.Hosting.Internal.Host: Hosting failed to start
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_Init_Windows' in DLL '/Libs/Windows/HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+2025-08-08 16:55:58 [INF] GrpcService.Services.GrpcRequestQueueService: 开始清理gRPC请求队列服务...
+2025-08-08 16:55:58 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务清理完成
+2025-08-08 16:55:58 [INF] GrpcService.HKSDK.DeviceManager: 开始清理设备管理器资源...
+2025-08-08 16:55:58 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器已释放所有资源，清理设备数量: 0
+2025-08-08 16:55:58 [INF] GrpcService.HKSDK.CMSService: 开始清理CMS服务资源...
+2025-08-08 16:55:58 [INF] GrpcService.HKSDK.CMSService: CMS服务资源清理完成
+2025-08-08 16:55:58 [FTL] : Ӧʧ
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_Init_Windows' in DLL '/Libs/Windows/HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at Program.<Main>$(String[] args) in E:\国控\code\hk_grpc_service\GrpcService\Program.cs:line 112
+2025-08-08 16:56:36 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 16:56:36 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 16:56:36 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 16:56:36 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 16:56:36 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 16:56:36 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 16:56:42 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libcrypto"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:56:42 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libssl"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:56:42 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libiconv2"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:56:42 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libz"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 376
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 940
+2025-08-08 16:56:42 [ERR] GrpcService.HKSDK.CMSService: CMS服务初始化失败
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+2025-08-08 16:57:17 [ERR] Microsoft.Extensions.Hosting.Internal.Host: Hosting failed to start
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+2025-08-08 16:57:17 [INF] GrpcService.Services.GrpcRequestQueueService: 开始清理gRPC请求队列服务...
+2025-08-08 16:57:17 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务清理完成
+2025-08-08 16:57:17 [INF] GrpcService.HKSDK.DeviceManager: 开始清理设备管理器资源...
+2025-08-08 16:57:17 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器已释放所有资源，清理设备数量: 0
+2025-08-08 16:57:17 [INF] GrpcService.HKSDK.CMSService: 开始清理CMS服务资源...
+2025-08-08 16:57:17 [INF] GrpcService.HKSDK.CMSService: CMS服务资源清理完成
+2025-08-08 16:57:17 [FTL] : Ӧʧ
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 245
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 108
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at Program.<Main>$(String[] args) in E:\国控\code\hk_grpc_service\GrpcService\Program.cs:line 112
+2025-08-08 17:17:44 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 17:17:44 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 17:17:44 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 17:17:44 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 17:17:44 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 17:17:44 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 17:17:44 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libcrypto"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 359
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:17:44 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libssl"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 359
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:17:44 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libiconv2"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 359
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:17:44 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libz"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 359
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:17:44 [ERR] GrpcService.HKSDK.CMSService: CMS服务初始化失败
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 228
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 107
+2025-08-08 17:17:50 [ERR] Microsoft.Extensions.Hosting.Internal.Host: Hosting failed to start
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 228
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 107
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+2025-08-08 17:17:50 [INF] GrpcService.Services.GrpcRequestQueueService: 开始清理gRPC请求队列服务...
+2025-08-08 17:17:50 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务清理完成
+2025-08-08 17:17:50 [INF] GrpcService.HKSDK.DeviceManager: 开始清理设备管理器资源...
+2025-08-08 17:17:50 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器已释放所有资源，清理设备数量: 0
+2025-08-08 17:17:50 [INF] GrpcService.HKSDK.CMSService: 开始清理CMS服务资源...
+2025-08-08 17:17:50 [INF] GrpcService.HKSDK.CMSService: CMS服务资源清理完成
+2025-08-08 17:17:50 [FTL] : Ӧʧ
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 228
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 107
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at Program.<Main>$(String[] args) in E:\国控\code\hk_grpc_service\GrpcService\Program.cs:line 112
+2025-08-08 17:22:31 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 17:22:31 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 17:22:31 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 17:22:31 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 17:22:31 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 17:22:31 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 17:22:31 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libcrypto"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:22:31 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libssl"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:22:31 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libiconv2"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:22:31 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libz"
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:22:31 [ERR] GrpcService.HKSDK.CMSService: CMS服务初始化失败
+System.DllNotFoundException: Unable to load DLL 'HCOTAPCMS.dll' or one of its dependencies: 找不到指定的模块。 (0x8007007E)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 246
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 107
+2025-08-08 17:25:43 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 17:25:43 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 17:25:43 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 17:25:43 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 17:25:43 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 17:25:43 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 17:25:43 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libcrypto"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:25:43 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libssl"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:25:43 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libiconv2"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:25:43 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libz"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:25:43 [ERR] GrpcService.HKSDK.CMSService: CMS服务初始化失败
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_Init_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 246
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 107
+2025-08-08 17:28:58 [ERR] Microsoft.Extensions.Hosting.Internal.Host: Hosting failed to start
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_Init_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init()
+   at GrpcService.HKSDK.CMSService.Initialize()
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0()
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+2025-08-08 17:28:58 [INF] GrpcService.Services.GrpcRequestQueueService: 开始清理gRPC请求队列服务...
+2025-08-08 17:28:58 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务清理完成
+2025-08-08 17:28:58 [INF] GrpcService.HKSDK.DeviceManager: 开始清理设备管理器资源...
+2025-08-08 17:28:58 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器已释放所有资源，清理设备数量: 0
+2025-08-08 17:28:58 [INF] GrpcService.HKSDK.CMSService: 开始清理CMS服务资源...
+2025-08-08 17:28:58 [INF] GrpcService.HKSDK.CMSService: CMS服务资源清理完成
+2025-08-08 17:28:58 [FTL] : Ӧʧ
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_Init_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init_Windows()
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_Init()
+   at GrpcService.HKSDK.CMSService.Initialize()
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0()
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at Program.<Main>$(String[] args)
+2025-08-08 17:29:07 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 17:29:07 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 17:29:07 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 17:29:07 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 17:29:08 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 17:29:08 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 17:29:08 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libcrypto"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:29:08 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libssl"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:29:08 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libiconv2"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:29:08 [ERR] GrpcService.HKSDK.CMSService: 设置库路径异常 "libz"
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetSDKInitCfg_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 377
+   at GrpcService.HKSDK.CMSService.SetupDependencyLibraries() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 939
+2025-08-08 17:29:08 [INF] GrpcService.HKSDK.CMSService: OTAP_CMS_Init 初始化成功!
+2025-08-08 17:29:08 [ERR] GrpcService.HKSDK.CMSService: CMS服务初始化失败
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetLogToFile_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetLogToFile_Windows(Int32 iLogLevel, String pLogDir, Boolean dwAutoDel)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetLogToFile(Int32 iLogLevel, String pLogDir, Boolean dwAutoDel) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 309
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 120
+2025-08-08 17:29:14 [ERR] Microsoft.Extensions.Hosting.Internal.Host: Hosting failed to start
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetLogToFile_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetLogToFile_Windows(Int32 iLogLevel, String pLogDir, Boolean dwAutoDel)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetLogToFile(Int32 iLogLevel, String pLogDir, Boolean dwAutoDel) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 309
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 120
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+2025-08-08 17:29:14 [INF] GrpcService.Services.GrpcRequestQueueService: 开始清理gRPC请求队列服务...
+2025-08-08 17:29:14 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务清理完成
+2025-08-08 17:29:14 [INF] GrpcService.HKSDK.DeviceManager: 开始清理设备管理器资源...
+2025-08-08 17:29:14 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器已释放所有资源，清理设备数量: 0
+2025-08-08 17:29:14 [INF] GrpcService.HKSDK.CMSService: 开始清理CMS服务资源...
+2025-08-08 17:29:14 [INF] GrpcService.HKSDK.CMSService: CMS服务资源清理完成
+2025-08-08 17:29:14 [FTL] : Ӧʧ
+System.EntryPointNotFoundException: Unable to find an entry point named 'OTAP_CMS_SetLogToFile_Windows' in DLL 'HCOTAPCMS.dll'.
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetLogToFile_Windows(Int32 iLogLevel, String pLogDir, Boolean dwAutoDel)
+   at GrpcService.HKSDK.HCOTAPCMS.OTAP_CMS_SetLogToFile(Int32 iLogLevel, String pLogDir, Boolean dwAutoDel) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\HCOTAPCMS.cs:line 309
+   at GrpcService.HKSDK.CMSService.Initialize() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 120
+   at GrpcService.HKSDK.CMSService.<StartAsync>b__16_0() in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at GrpcService.HKSDK.CMSService.StartAsync(CancellationToken cancellationToken) in E:\国控\code\hk_grpc_service\GrpcService\HKSDK\CMSService.cs:line 75
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__15_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+   at Program.<Main>$(String[] args) in E:\国控\code\hk_grpc_service\GrpcService\Program.cs:line 112
+2025-08-08 17:37:45 [INF] : 正在启动海康设备gRPC服务...
+2025-08-08 17:37:45 [INF] : 服务地址: "0.0.0.0":15201
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器初始化完成，支持最大并发操作: 10
+2025-08-08 17:37:45 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列服务初始化完成，最大并发请求: 20, 队列容量: 1000
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.CMSService: 正在启动CMSService...
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.CMSService: 开始初始化CMS服务...
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.CMSService: OTAP_CMS_Init 初始化成功!
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.CMSService: OTAP_CMS_SubscribeMsg succ
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.CMSService: OTAP_CMS_SubscribeStorageMsg succ!
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.CMSService: OTAP_CMS_StartListen 启动成功, IP: "0.0.0.0", Port: 16686, Handle: 0
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.CMSService: CMS服务初始化完成
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.CMSService: CMSService启动完成
+2025-08-08 17:37:45 [INF] GrpcService.HKSDK.DeviceManager: 设备管理器后台服务启动
+2025-08-08 17:37:45 [INF] GrpcService.Services.GrpcRequestQueueService: gRPC请求队列处理服务启动
+2025-08-08 17:37:46 [WRN] Microsoft.AspNetCore.Server.Kestrel: Overriding address(es) '"https://localhost:7177, http://localhost:5064"'. Binding to endpoints defined via IConfiguration and/or UseKestrel() instead.
+2025-08-08 17:37:46 [INF] Microsoft.Hosting.Lifetime: Now listening on: "http://0.0.0.0:15201"
+2025-08-08 17:37:46 [INF] Microsoft.AspNetCore.Mvc.Infrastructure.DefaultActionDescriptorCollectionProvider: No action descriptors found. This may indicate an incorrectly configured application or missing application parts. To learn more, visit https://aka.ms/aspnet/mvc/app-parts
+2025-08-08 17:37:46 [INF] Microsoft.Hosting.Lifetime: Application started. Press Ctrl+C to shut down.
+2025-08-08 17:37:46 [INF] Microsoft.Hosting.Lifetime: Hosting environment: "Development"
+2025-08-08 17:37:46 [INF] Microsoft.Hosting.Lifetime: Content root path: "E:\国控\code\hk_grpc_service\GrpcService"

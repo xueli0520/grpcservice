@@ -1,7 +1,8 @@
 using Grpc.Core;
-using GrpcService;
-using GrpcService.HKSDK.service;
+using GrpcService.Common;
+using GrpcService.HKSDK;
 using GrpcService.Models;
+using System.Text.Json;
 using System.Threading.Channels;
 
 namespace GrpcService.Services
@@ -9,422 +10,277 @@ namespace GrpcService.Services
     public class HikDeviceService : HikDevicegRPCService.HikDevicegRPCServiceBase
     {
         private readonly ILogger<HikDeviceService> _logger;
-        private readonly OptimizedDeviceManager _deviceManager;
-        private readonly CMSService _cmsService;
-        private readonly Channel<GrpcRequestMessage> _requestQueue;
-        private readonly SemaphoreSlim _concurrencyLimiter;
+        private readonly DeviceManager _deviceManager;
+        private readonly IGrpcRequestQueueService _requestQueue;
+        private readonly IDeviceLoggerService _deviceLogger;
 
         public HikDeviceService(
             ILogger<HikDeviceService> logger,
-            OptimizedDeviceManager deviceManager,
-            CMSService cmsService)
+            DeviceManager deviceManager,
+            IGrpcRequestQueueService requestQueue,
+            IDeviceLoggerService deviceLogger)
         {
             _logger = logger;
             _deviceManager = deviceManager;
-            _cmsService = cmsService;
-
-            // 创建gRPC请求处理队列
-            var queueOptions = new BoundedChannelOptions(1000)
-            {
-                FullMode = BoundedChannelFullMode.Wait,
-                SingleReader = false,
-                SingleWriter = false
-            };
-            _requestQueue = Channel.CreateBounded<GrpcRequestMessage>(queueOptions);
-
-            // 限制并发处理数量
-            _concurrencyLimiter = new SemaphoreSlim(50); // 最多50个并发请求
-
-            // 启动请求处理器
-            _ = Task.Run(ProcessGrpcRequests);
+            _requestQueue = requestQueue;
+            _deviceLogger = deviceLogger;
         }
 
-        #region 队列处理
-
-        private async Task ProcessGrpcRequests()
+        public override async Task<OpenDoorResponse> OpenDoor(OpenDoorRequest request, ServerCallContext context)
         {
-            _logger.LogInformation("gRPC请求处理器启动");
-
-            await foreach (var request in _requestQueue.Reader.ReadAllAsync())
-            {
-                _ = Task.Run(async () =>
+            return await _requestQueue.EnqueueRequestAsync(
+                request.DeviceId,
+                "OpenDoor",
+                request,
+                async (req, ct) =>
                 {
-                    await _concurrencyLimiter.WaitAsync();
-                    try
-                    {
-                        await ProcessGrpcRequest(request);
-                    }
-                    finally
-                    {
-                        _concurrencyLimiter.Release();
-                    }
-                });
-            }
-        }
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到开门请求: Operator={Operator}, MessageId={MessageId}",
+                        req.Operator, req.MessageId);
 
-        private async Task ProcessGrpcRequest(GrpcRequestMessage request)
-        {
-            try
-            {
-                _logger.LogDebug($"处理gRPC请求: {request.RequestType}, DeviceId: {request.DeviceId}");
+                    var parameters = new Dictionary<string, object>();
+                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
+                        req.DeviceId, "opendoor", parameters, ct);
 
-                switch (request.RequestType)
-                {
-                    case "OpenDoor":
-                        await ProcessOpenDoorRequest(request);
-                        break;
-                    case "Reboot":
-                        await ProcessRebootRequest(request);
-                        break;
-                    case "GetDeviceInfo":
-                        await ProcessGetDeviceInfoRequest(request);
-                        break;
-                    // 添加其他请求类型
-                    default:
-                        request.CompletionSource.SetException(
-                            new InvalidOperationException($"不支持的请求类型: {request.RequestType}"));
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"处理gRPC请求异常: {request.RequestType}");
-                request.CompletionSource.SetException(ex);
-            }
-        }
-
-        private async Task<T> EnqueueRequest<T>(string requestType, string deviceId, object requestData)
-        {
-            var request = new GrpcRequestMessage
-            {
-                RequestType = requestType,
-                DeviceId = deviceId,
-                RequestData = requestData,
-                CompletionSource = new TaskCompletionSource<object>()
-            };
-
-            if (!await _requestQueue.Writer.WaitToWriteAsync())
-            {
-                throw new InvalidOperationException("gRPC请求队列已关闭");
-            }
-
-            await _requestQueue.Writer.WriteAsync(request);
-            var result = await request.CompletionSource.Task;
-            return (T)result;
-        }
-
-        #endregion
-
-        #region gRPC接口实现
-
-        public override async Task<OpenDoorResponse> OpenDoor(
-            OpenDoorRequest request,
-            ServerCallContext context)
-        {
-            try
-            {
-                _logger.LogInformation($"接收开门请求: DeviceId={request.DeviceId}, Operator={request.Operator}");
-
-                // 验证请求参数
-                if (string.IsNullOrEmpty(request.DeviceId))
-                {
                     return new OpenDoorResponse
                     {
-                        Success = false,
-                        Message = "设备ID不能为空",
-                        ErrorCode = "INVALID_DEVICE_ID",
-                        DeviceId = request.DeviceId
+                        Success = result.Success,
+                        Message = result.Message,
+                        ErrorCode = result.Success ? "0" : "1001",
+                        DeviceId = req.DeviceId
                     };
-                }
-
-                // 通过队列处理请求
-                var response = await EnqueueRequest<OpenDoorResponse>("OpenDoor", request.DeviceId, request);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"开门操作异常: {request.DeviceId}");
-                return new OpenDoorResponse
-                {
-                    Success = false,
-                    Message = $"开门操作异常: {ex.Message}",
-                    ErrorCode = "INTERNAL_ERROR",
-                    DeviceId = request.DeviceId
-                };
-            }
+                },
+                context.CancellationToken);
         }
 
-        private async Task ProcessOpenDoorRequest(GrpcRequestMessage grpcRequest)
+        public override async Task<RebootResponse> Reboot(RebootRequest request, ServerCallContext context)
         {
-            var request = (OpenDoorRequest)grpcRequest.RequestData;
+            return await _requestQueue.EnqueueRequestAsync(
+                request.DeviceId,
+                "Reboot",
+                request,
+                async (req, ct) =>
+                {
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到重启请求: Operator={Operator}, MessageId={MessageId}",
+                        req.Operator, req.MessageId);
 
-            try
-            {
-                // 执行开门命令
-                var commandResult = await _deviceManager.ExecuteDeviceCommandAsync(
-                    request.DeviceId,
-                    "OpenDoor",
-                    new Dictionary<string, object>
+                    var parameters = new Dictionary<string, object>();
+                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
+                        req.DeviceId, "reboot", parameters, ct);
+
+                    return new RebootResponse
                     {
-                        ["operator"] = request.Operator,
-                        ["messageId"] = request.MessageId
-                    });
-
-                var response = new OpenDoorResponse
-                {
-                    Success = commandResult.Success,
-                    Message = commandResult.Message,
-                    ErrorCode = commandResult.ErrorCode,
-                    DeviceId = request.DeviceId
-                };
-
-                grpcRequest.CompletionSource.SetResult(response);
-            }
-            catch (Exception ex)
-            {
-                grpcRequest.CompletionSource.SetException(ex);
-            }
-        }
-
-        public override async Task<RebootResponse> Reboot(
-            RebootRequest request,
-            ServerCallContext context)
-        {
-            try
-            {
-                _logger.LogInformation($"接收重启请求: DeviceId={request.DeviceId}, Operator={request.Operator}");
-
-                var response = await EnqueueRequest<RebootResponse>("Reboot", request.DeviceId, request);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"重启操作异常: {request.DeviceId}");
-                return new RebootResponse
-                {
-                    Success = false,
-                    Message = $"重启操作异常: {ex.Message}",
-                    ErrorCode = "INTERNAL_ERROR",
-                    DeviceId = request.DeviceId
-                };
-            }
-        }
-
-        private async Task ProcessRebootRequest(GrpcRequestMessage grpcRequest)
-        {
-            var request = (RebootRequest)grpcRequest.RequestData;
-
-            try
-            {
-                var commandResult = await _deviceManager.ExecuteDeviceCommandAsync(
-                    request.DeviceId,
-                    "Reboot",
-                    new Dictionary<string, object>
-                    {
-                        ["operator"] = request.Operator,
-                        ["messageId"] = request.MessageId
-                    });
-
-                var response = new RebootResponse
-                {
-                    Success = commandResult.Success,
-                    Message = commandResult.Message,
-                    ErrorCode = commandResult.ErrorCode,
-                    DeviceId = request.DeviceId
-                };
-
-                grpcRequest.CompletionSource.SetResult(response);
-            }
-            catch (Exception ex)
-            {
-                grpcRequest.CompletionSource.SetException(ex);
-            }
-        }
-
-        public override async Task<GetDeviceInfoResponse> GetDeviceInfo(
-            GetDeviceInfoRequest request,
-            ServerCallContext context)
-        {
-            try
-            {
-                _logger.LogInformation($"接收获取设备信息请求: DeviceId={request.DeviceId}");
-
-                var response = await EnqueueRequest<GetDeviceInfoResponse>("GetDeviceInfo", request.DeviceId, request);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"获取设备信息异常: {request.DeviceId}");
-                return new GetDeviceInfoResponse
-                {
-                    Success = false,
-                    Message = $"获取设备信息异常: {ex.Message}",
-                    ErrorCode = "INTERNAL_ERROR",
-                    DeviceId = request.DeviceId
-                };
-            }
-        }
-
-        private async Task ProcessGetDeviceInfoRequest(GrpcRequestMessage grpcRequest)
-        {
-            var request = (GetDeviceInfoRequest)grpcRequest.RequestData;
-
-            try
-            {
-                var commandResult = await _deviceManager.ExecuteDeviceCommandAsync(
-                    request.DeviceId,
-                    "GetDeviceInfo",
-                    new Dictionary<string, object>
-                    {
-                        ["operator"] = request.Operator,
-                        ["messageId"] = request.MessageId
-                    });
-
-                var response = new GetDeviceInfoResponse
-                {
-                    Success = commandResult.Success,
-                    Message = commandResult.Message,
-                    ErrorCode = commandResult.ErrorCode,
-                    DeviceId = request.DeviceId
-                };
-
-                // 如果命令执行成功，填充设备信息
-                if (commandResult.Success && commandResult.Data.Count > 0)
-                {
-                    response.DeviceInfo = new DeviceInfo
-                    {
-                        DeviceId = commandResult.Data.GetValueOrDefault("device_id")?.ToString() ?? request.DeviceId,
-                        DeviceName = commandResult.Data.GetValueOrDefault("device_name")?.ToString() ?? "",
-                        FirmwareVersion = commandResult.Data.GetValueOrDefault("firmware_version")?.ToString() ?? "",
-                        IpAddress = commandResult.Data.GetValueOrDefault("ip_address")?.ToString() ?? "",
-                        UserCount = Convert.ToInt32(commandResult.Data.GetValueOrDefault("user_count", 0)),
-                        LastOnlineTime = Convert.ToInt64(commandResult.Data.GetValueOrDefault("last_online_time", 0))
+                        Success = result.Success,
+                        Message = result.Message,
+                        ErrorCode = result.Success ? "0" : "1002",
+                        DeviceId = req.DeviceId
                     };
-                }
-
-                grpcRequest.CompletionSource.SetResult(response);
-            }
-            catch (Exception ex)
-            {
-                grpcRequest.CompletionSource.SetException(ex);
-            }
+                },
+                context.CancellationToken);
         }
 
-        public override async Task<GetDeviceStatusResponse> GetDeviceStatus(
-            GetDeviceStatusRequest request,
-            ServerCallContext context)
+        public override async Task<SyncTimeResponse> SyncTime(SyncTimeRequest request, ServerCallContext context)
         {
-            try
-            {
-                _logger.LogInformation($"接收获取设备状态请求: DeviceId={request.DeviceId}");
-
-                // 直接从设备管理器获取状态，不需要队列处理
-                var onlineDevices = _deviceManager.GetOnlineDevices();
-                var device = onlineDevices.FirstOrDefault(d => d.DeviceId == request.DeviceId);
-
-                if (device == null)
+            return await _requestQueue.EnqueueRequestAsync(
+                request.DeviceId,
+                "SyncTime",
+                request,
+                async (req, ct) =>
                 {
-                    return new GetDeviceStatusResponse
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到同步时间请求: Timestamp={Timestamp}, Operator={Operator}",
+                        req.Timestamp, req.Operator);
+
+                    var parameters = new Dictionary<string, object>
                     {
-                        Success = false,
-                        Message = "设备未找到或离线",
-                        ErrorCode = "DEVICE_NOT_FOUND",
-                        DeviceId = request.DeviceId
+                        ["timestamp"] = req.Timestamp
                     };
-                }
 
-                var response = new GetDeviceStatusResponse
-                {
-                    Success = true,
-                    Message = "获取设备状态成功",
-                    DeviceId = request.DeviceId,
-                    DeviceStatus = new DeviceStatus
+                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
+                        req.DeviceId, "synctime", parameters, ct);
+
+                    return new SyncTimeResponse
                     {
-                        DeviceId = device.DeviceId,
-                        Online = device.IsConnected ?? false,
-                        DoorStatus = "unknown", // 需要从设备实际查询
-                        AlarmStatus = 0,
-                        LastHeartbeat = ((DateTimeOffset)(device.LastHeartbeat ?? DateTime.MinValue)).ToUnixTimeSeconds(),
-                        IpAddress = device.DeviceIP
+                        Success = result.Success,
+                        Message = result.Message,
+                        ErrorCode = result.Success ? "0" : "1003",
+                        DeviceId = req.DeviceId
+                    };
+                },
+                context.CancellationToken);
+        }
+
+        public override async Task<GetDeviceInfoResponse> GetDeviceInfo(GetDeviceInfoRequest request, ServerCallContext context)
+        {
+            return await _requestQueue.EnqueueRequestAsync(
+                request.DeviceId,
+                "GetDeviceInfo",
+                request,
+                async (req, ct) =>
+                {
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到获取设备信息请求: Operator={Operator}, MessageId={MessageId}",
+                        req.Operator, req.MessageId);
+
+                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
+                        req.DeviceId, "getdeviceinfo", new Dictionary<string, object>(), ct);
+
+                    var response = new GetDeviceInfoResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ErrorCode = result.Success ? "0" : "1004",
+                        DeviceId = req.DeviceId
+                    };
+
+                    if (result.Success && result.ResultData != null)
+                    {
+                        response.DeviceInfo = new DeviceInfo
+                        {
+                            DeviceId = result.ResultData.GetValueOrDefault("device_id", req.DeviceId).ToString()!,
+                            IpAddress = result.ResultData.GetValueOrDefault("device_ip", "未知").ToString()!,
+                            LastOnlineTime = DateTimeOffset.Parse(
+                                result.ResultData.GetValueOrDefault("last_online_time", DateTime.Now.ToString()).ToString()!)
+                                .ToUnixTimeSeconds()
+                        };
                     }
-                };
 
-                return response;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"获取设备状态异常: {request.DeviceId}");
-                return new GetDeviceStatusResponse
-                {
-                    Success = false,
-                    Message = $"获取设备状态异常: {ex.Message}",
-                    ErrorCode = "INTERNAL_ERROR",
-                    DeviceId = request.DeviceId
-                };
-            }
+                    return response;
+                },
+                context.CancellationToken);
         }
 
-        public override async Task<UpdateWhiteResponse> UpdateWhite(
-            UpdateWhiteRequest request,
-            ServerCallContext context)
+        public override async Task<GetDeviceStatusResponse> GetDeviceStatus(GetDeviceStatusRequest request, ServerCallContext context)
         {
-            try
-            {
-                _logger.LogInformation($"接收更新白名单请求: DeviceId={request.DeviceId}, PersonNum={request.PersonNum}");
-
-                var response = await EnqueueRequest<UpdateWhiteResponse>("UpdateWhite", request.DeviceId, request);
-                return response;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"更新白名单异常: {request.DeviceId}");
-                return new UpdateWhiteResponse
+            return await _requestQueue.EnqueueRequestAsync(
+                request.DeviceId,
+                "GetDeviceStatus",
+                request,
+                async (req, ct) =>
                 {
-                    Success = false,
-                    Message = $"更新白名单异常: {ex.Message}",
-                    ErrorCode = "INTERNAL_ERROR",
-                    DeviceId = request.DeviceId
-                };
-            }
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到获取设备状态请求: Operator={Operator}",
+                        req.Operator);
+
+                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
+                        req.DeviceId, "getstatus", new Dictionary<string, object>(), ct);
+
+                    var response = new GetDeviceStatusResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ErrorCode = result.Success ? "0" : "1005",
+                        DeviceId = req.DeviceId
+                    };
+
+                    if (result.Success && result.ResultData != null)
+                    {
+                        response.DeviceStatus = new DeviceStatus
+                        {
+                            DeviceId = req.DeviceId,
+                            Online = result.ResultData.GetValueOrDefault("status").ToString() == "online",
+                            DoorStatus = "unknown", // 需要根据实际情况设置
+                            AlarmStatus = 0,
+                            LastHeartbeat = DateTimeOffset.Parse(
+                                result.ResultData.GetValueOrDefault("last_heartbeat", DateTime.Now.ToString()).ToString()!)
+                                .ToUnixTimeSeconds(),
+                            IpAddress = result.ResultData.GetValueOrDefault("device_ip", "未知").ToString()!
+                        };
+                    }
+
+                    return response;
+                },
+                context.CancellationToken);
         }
 
-        // 可以继续实现其他gRPC方法...
-
-        #endregion
-
-        #region 健康检查和监控
-
-        /// <summary>
-        /// 获取服务健康状态
-        /// </summary>
-        public async Task<ServiceHealthStatus> GetHealthStatus()
+        public override async Task<SetDoorModeResponse> SetDoorMode(SetDoorModeRequest request, ServerCallContext context)
         {
-            try
-            {
-                var statistics = _deviceManager.GetStatistics();
-                var queueLength = _requestQueue.Reader.CanCount ? _requestQueue.Reader.Count : -1;
+            return await _requestQueue.EnqueueRequestAsync(
+                request.DeviceId,
+                "SetDoorMode",
+                request,
+                async (req, ct) =>
+                {
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到设置门禁模式请求: Mode={Mode}, Operator={Operator}",
+                        req.Mode, req.Operator);
 
-                return new ServiceHealthStatus
-                {
-                    IsHealthy = true,
-                    Message = "服务运行正常",
-                    Statistics = statistics,
-                    GrpcQueueLength = queueLength,
-                    ConcurrentRequests = 50 - _concurrencyLimiter.CurrentCount,
-                    Timestamp = DateTime.UtcNow
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ServiceHealthStatus
-                {
-                    IsHealthy = false,
-                    Message = $"服务异常: {ex.Message}",
-                    Timestamp = DateTime.UtcNow
-                };
-            }
+                    var parameters = new Dictionary<string, object>
+                    {
+                        ["mode"] = req.Mode
+                    };
+
+                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
+                        req.DeviceId, "setdoormode", parameters, ct);
+
+                    return new SetDoorModeResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ErrorCode = result.Success ? "0" : "1006",
+                        DeviceId = req.DeviceId
+                    };
+                },
+                context.CancellationToken);
         }
-        #endregion
 
+        // 实现其他接口方法...
+        public override async Task<UpdateUserAllResponse> UpdateUserAll(UpdateUserAllRequest request, ServerCallContext context)
+        {
+            return await _requestQueue.EnqueueRequestAsync(
+                request.DeviceId,
+                "UpdateUserAll",
+                request,
+                async (req, ct) =>
+                {
+                    var parameters = new Dictionary<string, object>
+                    {
+                        ["users"] = req.Users
+                    };
+
+                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
+                        req.DeviceId, "updateuserall", parameters, ct);
+
+                    return new UpdateUserAllResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ErrorCode = result.Success ? "0" : "1007",
+                        DeviceId = req.DeviceId,
+                        UpdatedCount = result.ResultData?.GetValueOrDefault("updated_count", 0).ToType<int>() ?? 0,
+                        TotalCount = result.ResultData?.GetValueOrDefault("total_count", req.Users.Count).ToType<int>() ?? req.Users.Count
+                    };
+                },
+                context.CancellationToken);
+        }
+
+        public override async Task<GetUserListResponse> GetUserList(GetUserListRequest request, ServerCallContext context)
+        {
+            return await _requestQueue.EnqueueRequestAsync(
+                request.DeviceId,
+                "GetUserList",
+                request,
+                async (req, ct) =>
+                {
+                    var parameters = new Dictionary<string, object>
+                    {
+                        ["page_number"] = req.PageNumber,
+                        ["page_size"] = req.PageSize
+                    };
+
+                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
+                        req.DeviceId, "getuserlist", parameters, ct);
+
+                    var response = new GetUserListResponse
+                    {
+                        Success = result.Success,
+                        Message = result.Message,
+                        ErrorCode = result.Success ? "0" : "1008",
+                        DeviceId = req.DeviceId,
+                        TotalCount = result.ResultData?.GetValueOrDefault("total_count", 0).ToType<int>() ?? 0
+                    };
+
+                    // 这里需要根据实际返回数据构建用户列表
+                    return response;
+                },
+                context.CancellationToken);
+        }
+
+        // ... 继续实现其他方法
     }
 }
