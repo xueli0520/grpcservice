@@ -1,4 +1,4 @@
-# Build and Release Folders
+﻿# Build and Release Folders
 bin-debug/
 bin-release/
 [Oo]bj/
@@ -17,3 +17,4 @@ bin-release/
 # should NOT be excluded as they contain compiler settings and other important
 # information for Eclipse / Flash Builder.
 /.vs/
+/logs/
