@@ -133,6 +133,9 @@ namespace GrpcService.HKSDK
         [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SetSDKInitCfg", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_SetSDKInitCfg_Windows(int enumType, nint lpInBuff);
 
+        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SetSDKLocalCfg", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool OTAP_CMS_SetSDKLocalCfg_Windows(int enumType, nint lpOutBuff);
+
         [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ResponseMsg", CallingConvention = CallingConvention.StdCall)]
         public static extern bool OTAP_CMS_ResponseMsg_Windows(int lUserID, int enumMsg, ref OTAP_CMS_RESPONSE_MSG_PARAM pParam);
         #endregion
@@ -141,6 +144,8 @@ namespace GrpcService.HKSDK
         // EN: Initialize CMS component.
         [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_Init", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_Init_Linux();
+        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SetSDKLocalCfg", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool OTAP_CMS_SetSDKLocalCfg_Linux(int enumType, nint lpOutBuff);
         // CN: 反初始化CMS组件
         // EN: Deinitialize CMS component
         [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_Fini", CallingConvention = CallingConvention.Cdecl)]
@@ -236,6 +241,9 @@ namespace GrpcService.HKSDK
 
         [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ResponseMsg", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool OTAP_CMS_ResponseMsg_Linux(int lUserID, int enumMsg, ref OTAP_CMS_RESPONSE_MSG_PARAM pParam);
+
+        public delegate int OTAP_CMS_RegisterCallback(int iUserID, uint dwDataType, nint pOutBuffer, uint dwOutLen, nint pInBuffer, uint dwInLen, nint pUserData);
+
         #endregion
 
         #region 跨平台
@@ -244,6 +252,11 @@ namespace GrpcService.HKSDK
         public static bool OTAP_CMS_Init()
         {
             return IsWindows ? OTAP_CMS_Init_Windows() : OTAP_CMS_Init_Linux();
+        }
+
+        public static bool OTAP_CMS_SetSDKLocalCfg(int enumType, nint lpInBuff)
+        {
+            return IsWindows ? OTAP_CMS_SetSDKLocalCfg_Windows(enumType, lpInBuff) : OTAP_CMS_SetSDKLocalCfg_Linux(enumType, lpInBuff);
         }
 
         // CN: 反初始化CMS组件
@@ -674,9 +687,6 @@ namespace GrpcService.HKSDK
                 byRes = new byte[248];
             }
         }
-
-        public delegate bool OTAP_CMS_RegisterCallback(int iUserID, uint dwDataType, nint pOutBuffer, uint dwOutLen, nint pInBuffer, uint dwInLen, nint pUserData);
-
         // CN: CMS监听参数
         // EN: CMS listening parameters
         public struct OTAP_CMS_LISTEN_PARAM
@@ -1312,19 +1322,12 @@ namespace GrpcService.HKSDK
         }
 
         // CN: CMS心跳参数
-        [StructLayout(LayoutKind.Sequential)]
-        public struct OTAP_CMS_SERVER_INFO
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public unsafe struct OTAP_CMS_SERVER_INFO
         {
-            public uint dwKeepAliveSec; // CN: 心跳间隔秒数
-            // EN: Heartbeat interval in seconds
-            public uint dwTimeOutCount; // CN: 超时次数
-            // EN: Timeout count
-            public uint dwAMSKeepAliveSec; // CN: AMS心跳间隔秒数
-            // EN: AMS heartbeat interval in seconds
-            public uint dwAMSTimeOutCount; // CN: AMS超时次数
-            // EN: AMS timeout count
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public byte[] byRes;
+            public uint dwKeepAliveSec;
+            public uint dwTimeOutCount;
+
         }
         //typedef struct {
         //    unsigned int dwKeepAliveSec;

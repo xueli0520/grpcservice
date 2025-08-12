@@ -1,4 +1,4 @@
-using Grpc.Core;
+ï»¿using Grpc.Core;
 using GrpcService.Common;
 using GrpcService.HKSDK;
 using GrpcService.Models;
@@ -7,15 +7,15 @@ using System.Threading.Channels;
 
 namespace GrpcService.Services
 {
-    public class HikDeviceService : HikDevicegRPCService.HikDevicegRPCServiceBase
+    public class HkDeviceService : HikDeviceService.HikDeviceServiceBase
     {
-        private readonly ILogger<HikDeviceService> _logger;
+        private readonly ILogger<HkDeviceService> _logger;
         private readonly DeviceManager _deviceManager;
         private readonly IGrpcRequestQueueService _requestQueue;
         private readonly IDeviceLoggerService _deviceLogger;
 
-        public HikDeviceService(
-            ILogger<HikDeviceService> logger,
+        public HkDeviceService(
+            ILogger<HkDeviceService> logger,
             DeviceManager deviceManager,
             IGrpcRequestQueueService requestQueue,
             IDeviceLoggerService deviceLogger)
@@ -34,7 +34,7 @@ namespace GrpcService.Services
                 request,
                 async (req, ct) =>
                 {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "ÊÕµ½¿ªÃÅÇëÇó: Operator={Operator}, MessageId={MessageId}",
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "æ”¶åˆ°å¼€é—¨è¯·æ±‚: Operator={Operator}, MessageId={MessageId}",
                         req.Operator, req.MessageId);
 
                     var parameters = new Dictionary<string, object>();
@@ -60,7 +60,7 @@ namespace GrpcService.Services
                 request,
                 async (req, ct) =>
                 {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "ÊÕµ½ÖØÆôÇëÇó: Operator={Operator}, MessageId={MessageId}",
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "æ”¶åˆ°é‡å¯è¯·æ±‚: Operator={Operator}, MessageId={MessageId}",
                         req.Operator, req.MessageId);
 
                     var parameters = new Dictionary<string, object>();
@@ -86,7 +86,7 @@ namespace GrpcService.Services
                 request,
                 async (req, ct) =>
                 {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "ÊÕµ½Í¬²½Ê±¼äÇëÇó: Timestamp={Timestamp}, Operator={Operator}",
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "æ”¶åˆ°åŒæ­¥æ—¶é—´è¯·æ±‚: Timestamp={Timestamp}, Operator={Operator}",
                         req.Timestamp, req.Operator);
 
                     var parameters = new Dictionary<string, object>
@@ -116,7 +116,7 @@ namespace GrpcService.Services
                 request,
                 async (req, ct) =>
                 {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "ÊÕµ½»ñÈ¡Éè±¸ĞÅÏ¢ÇëÇó: Operator={Operator}, MessageId={MessageId}",
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "æ”¶åˆ°è·å–è®¾å¤‡ä¿¡æ¯è¯·æ±‚: Operator={Operator}, MessageId={MessageId}",
                         req.Operator, req.MessageId);
 
                     var result = await _deviceManager.ExecuteDeviceCommandAsync(
@@ -135,7 +135,7 @@ namespace GrpcService.Services
                         response.DeviceInfo = new DeviceInfo
                         {
                             DeviceId = result.ResultData.GetValueOrDefault("device_id", req.DeviceId).ToString()!,
-                            IpAddress = result.ResultData.GetValueOrDefault("device_ip", "Î´Öª").ToString()!,
+                            IpAddress = result.ResultData.GetValueOrDefault("device_ip", "æœªçŸ¥").ToString()!,
                             LastOnlineTime = DateTimeOffset.Parse(
                                 result.ResultData.GetValueOrDefault("last_online_time", DateTime.Now.ToString()).ToString()!)
                                 .ToUnixTimeSeconds()
@@ -155,7 +155,7 @@ namespace GrpcService.Services
                 request,
                 async (req, ct) =>
                 {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "ÊÕµ½»ñÈ¡Éè±¸×´Ì¬ÇëÇó: Operator={Operator}",
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "æ”¶åˆ°è·å–è®¾å¤‡çŠ¶æ€è¯·æ±‚: Operator={Operator}",
                         req.Operator);
 
                     var result = await _deviceManager.ExecuteDeviceCommandAsync(
@@ -175,12 +175,12 @@ namespace GrpcService.Services
                         {
                             DeviceId = req.DeviceId,
                             Online = result.ResultData.GetValueOrDefault("status").ToString() == "online",
-                            DoorStatus = "unknown", // ĞèÒª¸ù¾İÊµ¼ÊÇé¿öÉèÖÃ
+                            DoorStatus = "unknown", // éœ€è¦æ ¹æ®å®é™…æƒ…å†µè®¾ç½®
                             AlarmStatus = 0,
                             LastHeartbeat = DateTimeOffset.Parse(
                                 result.ResultData.GetValueOrDefault("last_heartbeat", DateTime.Now.ToString()).ToString()!)
                                 .ToUnixTimeSeconds(),
-                            IpAddress = result.ResultData.GetValueOrDefault("device_ip", "Î´Öª").ToString()!
+                            IpAddress = result.ResultData.GetValueOrDefault("device_ip", "æœªçŸ¥").ToString()!
                         };
                     }
 
@@ -197,7 +197,7 @@ namespace GrpcService.Services
                 request,
                 async (req, ct) =>
                 {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "ÊÕµ½ÉèÖÃÃÅ½ûÄ£Ê½ÇëÇó: Mode={Mode}, Operator={Operator}",
+                    _deviceLogger.LogDeviceInfo(req.DeviceId, "æ”¶åˆ°è®¾ç½®é—¨ç¦æ¨¡å¼è¯·æ±‚: Mode={Mode}, Operator={Operator}",
                         req.Mode, req.Operator);
 
                     var parameters = new Dictionary<string, object>
@@ -219,7 +219,7 @@ namespace GrpcService.Services
                 context.CancellationToken);
         }
 
-        // ÊµÏÖÆäËû½Ó¿Ú·½·¨...
+        // å®ç°å…¶ä»–æ¥å£æ–¹æ³•...
         public override async Task<UpdateUserAllResponse> UpdateUserAll(UpdateUserAllRequest request, ServerCallContext context)
         {
             return await _requestQueue.EnqueueRequestAsync(
@@ -275,12 +275,12 @@ namespace GrpcService.Services
                         TotalCount = result.ResultData?.GetValueOrDefault("total_count", 0).ToType<int>() ?? 0
                     };
 
-                    // ÕâÀïĞèÒª¸ù¾İÊµ¼Ê·µ»ØÊı¾İ¹¹½¨ÓÃ»§ÁĞ±í
+                    // è¿™é‡Œéœ€è¦æ ¹æ®å®é™…è¿”å›æ•°æ®æ„å»ºç”¨æˆ·åˆ—è¡¨
                     return response;
                 },
                 context.CancellationToken);
         }
 
-        // ... ¼ÌĞøÊµÏÖÆäËû·½·¨
+        // ... ç»§ç»­å®ç°å…¶ä»–æ–¹æ³•
     }
 }

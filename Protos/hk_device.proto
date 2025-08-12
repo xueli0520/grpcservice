@@ -1,12 +1,12 @@
-syntax = "proto3";
+﻿syntax = "proto3";
 
 package hk_device;
 
-option go_package = "github.com/racoondad/lite-backend/plugins/hk_otap/proto";
+option go_package = "/proto";
 option csharp_namespace = "GrpcService";
 
 // 海康设备 gRPC 服务
-service HikDevicegRPCService {
+service HikDeviceService {
   // 开门
   rpc OpenDoor(OpenDoorRequest) returns (OpenDoorResponse);
   

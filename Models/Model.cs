@@ -9,6 +9,12 @@ namespace GrpcService.Models
         public int MaxReceiveMessageSize { get; set; } = 4194304;
         public int MaxSendMessageSize { get; set; } = 4194304;
         public int MaxConcurrentCalls { get; set; } = 100;
+        public bool UseTls { get; set; } = false;
+        public bool RequireClientCertificate { get; set; } = false;
+        public string? ServerCertificatePath { get; set; }
+        public string? ServerCertificatePassword { get; set; }
+        public string? ClientCertificateAuthorityPath { get; set; }
+        public int? HealthPort { get; set; }
     }
 
     public class HikDeviceConfiguration

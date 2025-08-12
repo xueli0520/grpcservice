@@ -8,7 +8,6 @@ using System.IO;
 
 
 var builder = WebApplication.CreateBuilder(args);
-// ������־
 // 常量提取
 const int DefaultRetainedFileCountLimit = 30;
 const int DefaultMaxReceiveMessageSize = 4194304;
@@ -30,7 +29,7 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {SourceContext}: {Message}{NewLine}{Exception}")
     .CreateLogger();
 
-builder.Host.UseSerilog();
+builder.Host.UseSerilog(); 
 
 builder.Services.Configure<GrpcServerConfiguration>(
     builder.Configuration.GetSection("GrpcServer"));
@@ -64,10 +63,18 @@ builder.WebHost.ConfigureKestrel((context, serverOptions) =>
     var grpcConfig = context.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
     var host = grpcConfig?.Host ?? DefaultHost;
     var port = grpcConfig?.Port ?? DefaultGrpcPort;
+    var healthPort = port + 1;
 
+    // gRPC 端口：仅 HTTP/2（明文 h2c）
     serverOptions.Listen(System.Net.IPAddress.Parse(host), port, listenOptions =>
     {
         listenOptions.Protocols = HttpProtocols.Http2;
+    });
+
+    // 健康检查端口：HTTP/1.1，便于浏览器/Invoke-WebRequest 访问
+    serverOptions.Listen(System.Net.IPAddress.Parse(host), healthPort, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1;
     });
 
     serverOptions.Limits.MaxConcurrentConnections = grpcConfig?.MaxConcurrentCalls ?? DefaultMaxConcurrentCalls;
@@ -80,7 +87,7 @@ var app = builder.Build();
 app.UseRouting();
 
 // ע��gRPC����
-app.MapGrpcService<HikDeviceService>();
+app.MapGrpcService<HkDeviceService>();
 
 // �������˵�
 app.MapGet("/health", async (DeviceManager deviceManager, IGrpcRequestQueueService queueService) =>
@@ -107,7 +114,10 @@ try
     Log.Information("正在启动海康设备gRPC服务...");
 
     var grpcConfig = app.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
-    Log.Information("服务地址: {Host}:{Port}", grpcConfig?.Host ?? DefaultHost, grpcConfig?.Port ?? DefaultGrpcPort);
+    var host = grpcConfig?.Host ?? DefaultHost;
+    var port = grpcConfig?.Port ?? DefaultGrpcPort;
+    Log.Information("gRPC服务地址 (HTTP/2, 明文): {Host}:{Port}", host, port);
+    Log.Information("健康检查地址 (HTTP/1.1): {Host}:{Port}", host, port + 1);
 
     app.Run();
 }

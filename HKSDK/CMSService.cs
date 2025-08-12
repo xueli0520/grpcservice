@@ -2,9 +2,12 @@
 using GrpcService.Models;
 using GrpcService.Services;
 using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Concurrent;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
+using static GrpcService.HKSDK.HCOTAPCMS;
 
 namespace GrpcService.HKSDK
 {
@@ -101,23 +104,35 @@ namespace GrpcService.HKSDK
                 try
                 {
                     _logger.LogInformation("开始初始化CMS服务...");
-                    _logger.LogDebug("当前平台: {Platform}", HCOTAPCMS.GetPlatformInfo());
+                    _logger.LogDebug("当前平台: {Platform}", GetPlatformInfo());
                     SetupDependencyLibraries();
                     // 初始化SDK
-                    if (!HCOTAPCMS.OTAP_CMS_Init())
+                    if (!OTAP_CMS_Init())
                     {
-                        var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                        var errorCode = OTAP_CMS_GetLastError();
                         var errorMessage = $"OTAP_CMS_Init failed, error: {errorCode}";
                         _logger.LogError(errorMessage);
                         throw new InvalidOperationException(errorMessage);
                     }
+                    //配置设备心跳 
+                    IntPtr pBuffer = IntPtr.Zero;
+                    pBuffer = Marshal.AllocHGlobal(sizeof(bool));
+                    Marshal.WriteByte(pBuffer, 1); // TRUE = 1
+                    if (!OTAP_CMS_SetSDKLocalCfg(ENUM_OTAP_CMS_DEV_DAS_PINGREQ_CALLBACK, pBuffer))
+                    {
+                        var errorCode = OTAP_CMS_GetLastError();
+                        var errorMessage = $"OTAP_CMS_Init failed, error: {errorCode}";
+                        _logger.LogError(errorMessage);
+                        Console.WriteLine(errorMessage);
+                    }
+                    _logger.LogInformation("心跳设置 成功");
 
                     _logger.LogInformation("OTAP_CMS_Init 初始化成功!");
 
                     // 设置日志
                     var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, SdkLogDir);
                     CommonMethod.EnsureDirectoryExists(logPath);
-                    HCOTAPCMS.OTAP_CMS_SetLogToFile(3, logPath, false);
+                    OTAP_CMS_SetLogToFile(3, logPath, false);
 
                     // 订阅消息
                     SubscribeMessages();
@@ -148,16 +163,16 @@ namespace GrpcService.HKSDK
             IntPtr ptrSubscribeMsgParam = IntPtr.Zero;
             try
             {
-                CMSServiceHelpers.OTAP_SubscribeMsgCallback_Func ??= new HCOTAPCMS.OTAP_CMS_SubscribeMsgCallback(FSubscribeMsgCallback);
+                CMSServiceHelpers.OTAP_SubscribeMsgCallback_Func ??= new OTAP_CMS_SubscribeMsgCallback(FSubscribeMsgCallback);
                 CMSServiceHelpers.subscribeMsgParam.fnCB = CMSServiceHelpers.OTAP_SubscribeMsgCallback_Func;
 
                 int size = Marshal.SizeOf(CMSServiceHelpers.subscribeMsgParam);
                 ptrSubscribeMsgParam = Marshal.AllocHGlobal(size);
                 Marshal.StructureToPtr(CMSServiceHelpers.subscribeMsgParam, ptrSubscribeMsgParam, false);
 
-                if (!HCOTAPCMS.OTAP_CMS_SubscribeMsg(HCOTAPCMS.OTAP_CMS_SUBSCRIBE_MSG_ENUM.ENUM_OTAP_CMS_SET_CALLBACK_FUN, ptrSubscribeMsgParam))
+                if (!OTAP_CMS_SubscribeMsg(OTAP_CMS_SUBSCRIBE_MSG_ENUM.ENUM_OTAP_CMS_SET_CALLBACK_FUN, ptrSubscribeMsgParam))
                 {
-                    var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                    var errorCode = OTAP_CMS_GetLastError();
                     _logger.LogError("OTAP_CMS_SubscribeMsg failed, error: {ErrorCode}", errorCode);
                 }
                 else
@@ -174,6 +189,25 @@ namespace GrpcService.HKSDK
             {
                 if (ptrSubscribeMsgParam != IntPtr.Zero)
                     Marshal.FreeHGlobal(ptrSubscribeMsgParam);
+                OTAP_CMS_SUBSCRIBEMSG_TOPIC_FILTER_PARAM struTopicFilter = new();
+                struTopicFilter.Init();
+
+                string szTopicFilter = "#\r\n";//订阅的主题
+                struTopicFilter.dwTopicFilterLen = (uint)szTopicFilter.Length;
+                struTopicFilter.pTopicFilter = Marshal.StringToHGlobalAnsi(szTopicFilter);
+
+                int size = Marshal.SizeOf(struTopicFilter);
+                IntPtr ptrStruTopicFilter = Marshal.AllocHGlobal(size);
+                Marshal.StructureToPtr(struTopicFilter, ptrStruTopicFilter, false);
+
+                if (!OTAP_CMS_SubscribeMsg(OTAP_CMS_SUBSCRIBE_MSG_ENUM.ENUM_OTAP_CMS_SET_TOPIC_FILTER, ptrStruTopicFilter))
+                {
+                    Console.WriteLine("OTAP_CMS_SubscribeMsg ENUM_OTAP_CMS_SET_TOPIC_FILTER failed, error:" + OTAP_CMS_GetLastError());
+                }
+                else
+                {
+                    Console.WriteLine("OTAP_CMS_SubscribeMsg ENUM_OTAP_CMS_SET_TOPIC_FILTER succ!");
+                }
             }
         }
 
@@ -186,7 +220,7 @@ namespace GrpcService.HKSDK
             {
                 ["initialized"] = _isInitialized,
                 ["listen_handle"] = CMSServiceHelpers.CmsListenHandle,
-                ["platform"] = HCOTAPCMS.GetPlatformInfo(),
+                ["platform"] = GetPlatformInfo(),
                 ["configuration"] = new Dictionary<string, object>
                 {
                     ["cms_server"] = $"{_config.CmsServerIP}:{_config.CmsServerPort}",
@@ -226,9 +260,9 @@ namespace GrpcService.HKSDK
                     {
                         try
                         {
-                            if (!HCOTAPCMS.OTAP_CMS_Fini())
+                            if (!OTAP_CMS_Fini())
                             {
-                                var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                                var errorCode = OTAP_CMS_GetLastError();
                                 _logger.LogError("OTAP_CMS_Fini failed, error: {ErrorCode}", errorCode);
                             }
                             else
@@ -272,14 +306,14 @@ namespace GrpcService.HKSDK
 
                 CMSServiceHelpers.cmsListenParam.struAddress.wPort = (short)_config.CmsServerPort;
 
-                CMSServiceHelpers.OTAP_REGISTER_Func ??= new HCOTAPCMS.OTAP_CMS_RegisterCallback(FRegisterCallBack);
+                CMSServiceHelpers.OTAP_REGISTER_Func ??= new OTAP_CMS_RegisterCallback(FRegisterCallBack);
                 CMSServiceHelpers.cmsListenParam.fnCB = CMSServiceHelpers.OTAP_REGISTER_Func;
-                CMSServiceHelpers.cmsListenParam.byRes = new byte[128];
+                CMSServiceHelpers.cmsListenParam.pUserData = IntPtr.Zero;
 
-                CMSServiceHelpers.CmsListenHandle = HCOTAPCMS.OTAP_CMS_StartListen(ref CMSServiceHelpers.cmsListenParam);
+                CMSServiceHelpers.CmsListenHandle = OTAP_CMS_StartListen(ref CMSServiceHelpers.cmsListenParam);
                 if (CMSServiceHelpers.CmsListenHandle < 0)
                 {
-                    var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                    var errorCode = OTAP_CMS_GetLastError();
                     var errorMessage = $"OTAP_CMS_StartListen failed, error: {errorCode}";
                     _logger.LogError(errorMessage);
                     throw new InvalidOperationException(errorMessage);
@@ -302,12 +336,12 @@ namespace GrpcService.HKSDK
         {
             try
             {
-                CMSServiceHelpers.OTAP_CMS_StorageCallback_Func ??= new HCOTAPCMS.OTAP_CMS_StorageCallback(FStorageCallback);
+                CMSServiceHelpers.OTAP_CMS_StorageCallback_Func ??= new OTAP_CMS_StorageCallback(FStorageCallback);
                 CMSServiceHelpers.struStorageCBParam.fnCB = CMSServiceHelpers.OTAP_CMS_StorageCallback_Func;
 
-                if (!HCOTAPCMS.OTAP_CMS_SubscribeStorageMsg(ref CMSServiceHelpers.struStorageCBParam))
+                if (!OTAP_CMS_SubscribeStorageMsg(ref CMSServiceHelpers.struStorageCBParam))
                 {
-                    var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                    var errorCode = OTAP_CMS_GetLastError();
                     _logger.LogError("OTAP_CMS_SubscribeStorageMsg failed, error: {ErrorCode}", errorCode);
                 }
                 else
@@ -324,79 +358,91 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 设备注册回调
         /// </summary>
-        public bool FRegisterCallBack(int lUserID, uint dwDataType, IntPtr pOutBuffer, uint dwOutLen, IntPtr pInBuffer, uint dwInLen, IntPtr pUserData)
+        public unsafe int FRegisterCallBack(int lUserID, uint dwDataType, IntPtr pOutBuffer, uint dwOutLen, IntPtr pInBuffer, uint dwInLen, IntPtr pUserData)
         {
             try
             {
                 _logger.LogDebug("FRegisterCallBack, dwDataType: {DataType}, lUserID: {UserID}", dwDataType, lUserID);
 
-                HCOTAPCMS.OTAP_CMS_DEV_REG_INFO struDevInfo = new();
+                OTAP_CMS_DEV_REG_INFO struDevInfo = new();
                 struDevInfo.Init();
-
+                struDevInfo.struDevAddr.Init();
+                struDevInfo.struRegAddr.Init();
                 if (pOutBuffer != IntPtr.Zero)
                 {
-                    struDevInfo = (HCOTAPCMS.OTAP_CMS_DEV_REG_INFO)Marshal.PtrToStructure(pOutBuffer, typeof(HCOTAPCMS.OTAP_CMS_DEV_REG_INFO))!;
+                    struDevInfo = (OTAP_CMS_DEV_REG_INFO)Marshal.PtrToStructure(pOutBuffer, typeof(OTAP_CMS_DEV_REG_INFO))!;
                 }
 
                 string strDeviceID = Encoding.Default.GetString(struDevInfo.byDeviceID).TrimEnd('\0');
 
                 switch (dwDataType)
                 {
-                    case HCOTAPCMS.ENUM_OTAP_CMS_DEV_ON:
-                    case HCOTAPCMS.ENUM_OTAP_CMS_ADDRESS_CHANGED:
-                    case HCOTAPCMS.ENUM_OTAP_CMS_DEV_DAS_REREGISTER:
-                        return HandleDeviceOnline(lUserID, strDeviceID, struDevInfo, pInBuffer, dwInLen);
-
-                    case HCOTAPCMS.ENUM_OTAP_CMS_DEV_DAS_PINGREQ:
-                        return HandleDeviceHeartbeat(lUserID, strDeviceID);
-
-                    case HCOTAPCMS.ENUM_OTAP_CMS_DEV_OFF:
-                    case HCOTAPCMS.ENUM_OTAP_CMS_DEV_SESSIONKEY_ERROR:
-                    case HCOTAPCMS.ENUM_OTAP_CMS_DEV_DAS_OTAPKEY_ERROR:
-                        return HandleDeviceOffline(lUserID, strDeviceID);
-
-                    case HCOTAPCMS.ENUM_OTAP_CMS_DEV_AUTH:
-                        return HandleDeviceAuth(strDeviceID, pInBuffer);
-
-                    case HCOTAPCMS.ENUM_OTAP_CMS_DAS_REQ:
-                        return HandleDasRequest(pInBuffer);
+                    case ENUM_OTAP_CMS_DEV_ON:
+                    case ENUM_OTAP_CMS_ADDRESS_CHANGED:
+                    case ENUM_OTAP_CMS_DEV_DAS_REREGISTER:
+                        HandleDeviceOnline(lUserID, strDeviceID, struDevInfo, pInBuffer, dwInLen);
+                        break;
+                    case ENUM_OTAP_CMS_DEV_DAS_PINGREQ:
+                        HandleDeviceHeartbeat(lUserID, strDeviceID);
+                        break;
+                    case ENUM_OTAP_CMS_DEV_OFF:
+                    case ENUM_OTAP_CMS_DEV_SESSIONKEY_ERROR:
+                    case ENUM_OTAP_CMS_DEV_DAS_OTAPKEY_ERROR:
+                        HandleDeviceOffline(lUserID, strDeviceID);
+                        break;
+                    case ENUM_OTAP_CMS_DEV_AUTH:
+                        HandleDeviceAuth(strDeviceID, pInBuffer);
+                        break;
+                    case ENUM_OTAP_CMS_DAS_REQ:
+                        HandleDasRequest(pInBuffer);
+                        break;
+                    case ENUM_OTAP_CMS_DEV_SESSIONKEY:
+                        break;
 
                     default:
                         _logger.LogWarning("未处理的设备事件类型: {DataType}, DeviceID: {DeviceID}", dwDataType, strDeviceID);
                         break;
                 }
 
-                return true;
+                return 1;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "设备注册回调处理异常, UserID: {UserID}, DataType: {DataType}", lUserID, dwDataType);
-                return false;
+                return 0;
             }
         }
 
         /// <summary>
         /// 处理设备上线
         /// </summary>
-        private bool HandleDeviceOnline(int lUserID, string deviceId, HCOTAPCMS.OTAP_CMS_DEV_REG_INFO struDevInfo, IntPtr pInBuffer, uint dwInLen)
+        private bool HandleDeviceOnline(int lUserID, string deviceId, OTAP_CMS_DEV_REG_INFO struDevInfo, IntPtr pInBuffer, uint dwInLen)
         {
             try
             {
                 _deviceLogger.LogDeviceInfo(deviceId, "设备上线: UserID: {UserID}", lUserID);
+                // 设置服务器心跳参数
+                var struServerInfo = Marshal.PtrToStructure<OTAP_CMS_SERVER_INFO>(pInBuffer)!;
+                // CMS 心跳配置
+                struServerInfo.dwKeepAliveSec = (uint)_config.HeartbeatCheckIntervalSeconds;
+                struServerInfo.dwTimeOutCount = 3;
+                Marshal.StructureToPtr(struServerInfo, pInBuffer, false);
 
+                _deviceLogger.LogDeviceInfo(deviceId, "设置心跳参数 - KeepAliveSec: {KeepAlive}, TimeOutCount: {TimeOut}",
+                    struServerInfo.dwKeepAliveSec, struServerInfo.dwTimeOutCount);
                 // 异步注册设备，避免阻塞回调
-                _ = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     try
                     {
-                        var result = await _deviceManager.RegisterDeviceAsync(lUserID, struDevInfo);
-                        if (result.Success)
+                        var (Success, Message, DeviceId) = await _deviceManager.RegisterDeviceAsync(lUserID, struDevInfo);
+                        if (Success)
                         {
                             _deviceLogger.LogDeviceInfo(deviceId, "设备注册成功");
                         }
                         else
                         {
-                            _deviceLogger.LogDeviceError(deviceId, null, "设备注册失败: {Message}", result.Message);
+                            _deviceLogger.LogDeviceError(deviceId, null, "设备注册失败: {Message}", Message);
                         }
                     }
                     catch (Exception ex)
@@ -404,27 +450,6 @@ namespace GrpcService.HKSDK
                         _deviceLogger.LogDeviceError(deviceId, ex, "异步设备注册异常");
                     }
                 });
-
-                // 设置服务器心跳参数
-                if (pInBuffer != IntPtr.Zero && dwInLen > 0)
-                {
-                    try
-                    {
-                        HCOTAPCMS.OTAP_CMS_SERVER_INFO struServerInfo = (HCOTAPCMS.OTAP_CMS_SERVER_INFO)Marshal.PtrToStructure(pInBuffer, typeof(HCOTAPCMS.OTAP_CMS_SERVER_INFO))!;
-                        struServerInfo.dwKeepAliveSec = (uint)_config.HeartbeatCheckIntervalSeconds;
-                        struServerInfo.dwTimeOutCount = (uint)(_config.HeartbeatTimeoutSeconds / _config.HeartbeatCheckIntervalSeconds);
-
-                        Marshal.StructureToPtr(struServerInfo, pInBuffer, false);
-
-                        _deviceLogger.LogDeviceDebug(deviceId, "设置心跳参数 - KeepAliveSec: {KeepAlive}, TimeOutCount: {TimeOut}",
-                            struServerInfo.dwKeepAliveSec, struServerInfo.dwTimeOutCount);
-                    }
-                    catch (Exception ex)
-                    {
-                        _deviceLogger.LogDeviceError(deviceId, ex, "设置心跳参数异常");
-                    }
-                }
-
                 return true;
             }
             catch (Exception ex)
@@ -441,7 +466,7 @@ namespace GrpcService.HKSDK
         {
             try
             {
-                _deviceLogger.LogDeviceDebug(deviceId, "收到设备心跳: UserID: {UserID}", lUserID);
+                _deviceLogger.LogDeviceInfo(deviceId, "收到设备心跳: UserID: {UserID}", lUserID);
 
                 bool result = _deviceManager.UpdateDeviceHeartbeat(deviceId, lUserID);
                 if (!result)
@@ -473,7 +498,6 @@ namespace GrpcService.HKSDK
                     try
                     {
                         await _deviceManager.DisconnectDeviceAsync(deviceId, lUserID);
-                        _deviceLogger.RemoveDeviceLogger(deviceId); // 清理设备日志器
                     }
                     catch (Exception ex)
                     {
@@ -521,25 +545,26 @@ namespace GrpcService.HKSDK
         {
             try
             {
-                HCOTAPCMS.OTAP_CMS_DAS_INFO struCmsDasInfo = new();
+                OTAP_CMS_DAS_INFO struCmsDasInfo = new();
                 struCmsDasInfo.Init();
-
+                struCmsDasInfo.struDevAddr.Init();
                 var dasServerIP = _config.DasServerIP;
                 var dasServerPort = _config.DasServerPort;
 
-                dasServerIP.CopyTo(0, struCmsDasInfo.struDevAddr.szIP, 0, Math.Min(dasServerIP.Length, MaxIpLength));
+                dasServerIP.CopyTo(0, struCmsDasInfo.struDevAddr.szIP, 0, dasServerIP.Length);
                 struCmsDasInfo.struDevAddr.wPort = (short)dasServerPort;
-
-                string domain = "test.ys7.com";
-                domain.CopyTo(0, struCmsDasInfo.byDomain, 0, Math.Min(domain.Length, 63));
-
                 string strServerID = $"das_{dasServerIP}_{dasServerPort}";
-                strServerID.CopyTo(0, struCmsDasInfo.byServerID, 0, Math.Min(strServerID.Length, 63));
+                strServerID.CopyTo(0, struCmsDasInfo.byServerID, 0, strServerID.Length);
 
-                Marshal.StructureToPtr(struCmsDasInfo, pInBuffer, false);
+                if (pInBuffer != IntPtr.Zero)
+                {
+                    Marshal.StructureToPtr(struCmsDasInfo, pInBuffer, false);
 
-                _logger.LogInformation("处理DAS请求: ServerID: {ServerID}, IP: {IP}, Port: {Port}", strServerID, dasServerIP, dasServerPort);
+                    _logger.LogInformation("处理DAS请求: ServerID: {ServerID}, IP: {IP}, Port: {Port}", strServerID, dasServerIP, dasServerPort);
+
+                }
                 return true;
+
             }
             catch (Exception ex)
             {
@@ -551,7 +576,7 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 存储回调
         /// </summary>
-        public void FStorageCallback(int iUserID, ref HCOTAPCMS.OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData)
+        public void FStorageCallback(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData)
         {
             try
             {
@@ -560,11 +585,11 @@ namespace GrpcService.HKSDK
 
                 switch (pParam.dwType)
                 {
-                    case HCOTAPCMS.ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY:
+                    case ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY:
                         HandleStorageUploadQuery(iUserID, ref pParam);
                         break;
 
-                    case HCOTAPCMS.ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT:
+                    case ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT:
                         HandleStorageUploadReport(iUserID, ref pParam);
                         break;
 
@@ -582,14 +607,14 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 处理存储上传查询
         /// </summary>
-        private void HandleStorageUploadQuery(int iUserID, ref HCOTAPCMS.OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam)
+        private void HandleStorageUploadQuery(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam)
         {
             var deviceId = new string(pParam.szDevID).TrimEnd('\0');
             try
             {
                 if (pParam.pOutBuf == IntPtr.Zero) return;
 
-                var struUpload = (HCOTAPCMS.OTAP_CMS_UPLOAD_OBJECT_OUTPUT_PARAM)Marshal.PtrToStructure(pParam.pOutBuf, typeof(HCOTAPCMS.OTAP_CMS_UPLOAD_OBJECT_OUTPUT_PARAM))!;
+                var struUpload = (OTAP_CMS_UPLOAD_OBJECT_OUTPUT_PARAM)Marshal.PtrToStructure(pParam.pOutBuf, typeof(OTAP_CMS_UPLOAD_OBJECT_OUTPUT_PARAM))!;
 
                 string childId = new string(pParam.szChildID).TrimEnd('\0');
                 string localIndex = new string(pParam.szLocalIndex).TrimEnd('\0');
@@ -602,13 +627,13 @@ namespace GrpcService.HKSDK
                 var struUploadObjInputParam = BuildUploadInputParam();
 
                 // 响应上传查询
-                var struStorageResponseMsg = new HCOTAPCMS.OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM();
+                var struStorageResponseMsg = new OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM();
                 struStorageResponseMsg.Init();
                 struStorageResponseMsg.szChildID = pParam.szChildID;
                 struStorageResponseMsg.szLocalIndex = pParam.szLocalIndex;
                 struStorageResponseMsg.szResourceType = pParam.szResourceType;
                 struStorageResponseMsg.dwSequence = pParam.dwSequence;
-                struStorageResponseMsg.dwType = HCOTAPCMS.ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY_REPLY;
+                struStorageResponseMsg.dwType = ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY_REPLY;
                 IntPtr pInBuf = Marshal.AllocHGlobal(Marshal.SizeOf(struUploadObjInputParam));
                 struStorageResponseMsg.pInBuf = pInBuf;
                 struStorageResponseMsg.dwInBufSize = (uint)Marshal.SizeOf(struUploadObjInputParam);
@@ -617,9 +642,9 @@ namespace GrpcService.HKSDK
                 {
                     Marshal.StructureToPtr(struUploadObjInputParam, pInBuf, false);
 
-                    if (!HCOTAPCMS.OTAP_CMS_ResponseStorageMsg(iUserID, ref struStorageResponseMsg))
+                    if (!OTAP_CMS_ResponseStorageMsg(iUserID, ref struStorageResponseMsg))
                     {
-                        var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                        var errorCode = OTAP_CMS_GetLastError();
                         _deviceLogger.LogDeviceError(deviceId, null, "OTAP_CMS_ResponseStorageMsg UPLOAD_QUERY_REPLY failed, error: {ErrorCode}", errorCode);
                     }
                     else
@@ -641,14 +666,14 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 处理存储上传报告
         /// </summary>
-        private void HandleStorageUploadReport(int iUserID, ref HCOTAPCMS.OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam)
+        private void HandleStorageUploadReport(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam)
         {
             var deviceId = new string(pParam.szDevID).TrimEnd('\0');
             try
             {
                 if (pParam.pOutBuf == IntPtr.Zero) return;
 
-                var struReport = (HCOTAPCMS.OTAP_CMS_REPORT_OBJECT_OUTPUT_PARAM)Marshal.PtrToStructure(pParam.pOutBuf, typeof(HCOTAPCMS.OTAP_CMS_REPORT_OBJECT_OUTPUT_PARAM))!;
+                var struReport = (OTAP_CMS_REPORT_OBJECT_OUTPUT_PARAM)Marshal.PtrToStructure(pParam.pOutBuf, typeof(OTAP_CMS_REPORT_OBJECT_OUTPUT_PARAM))!;
 
                 string childId = new string(pParam.szChildID).TrimEnd('\0');
                 string storageId = new string(struReport.szStorageId).TrimEnd('\0');
@@ -658,19 +683,19 @@ namespace GrpcService.HKSDK
                     childId, storageId, bucket, struReport.dwResult);
 
                 // 响应上传报告
-                var struStorageResponseMsg = new HCOTAPCMS.OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM();
+                var struStorageResponseMsg = new OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM();
                 struStorageResponseMsg.Init();
                 struStorageResponseMsg.szChildID = pParam.szChildID;
                 struStorageResponseMsg.szLocalIndex = pParam.szLocalIndex;
                 struStorageResponseMsg.szResourceType = pParam.szResourceType;
                 struStorageResponseMsg.dwSequence = pParam.dwSequence;
-                struStorageResponseMsg.dwType = HCOTAPCMS.ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT_REPLY;
+                struStorageResponseMsg.dwType = ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT_REPLY;
                 struStorageResponseMsg.pInBuf = IntPtr.Zero;
                 struStorageResponseMsg.dwInBufSize = 0;
 
-                if (!HCOTAPCMS.OTAP_CMS_ResponseStorageMsg(iUserID, ref struStorageResponseMsg))
+                if (!OTAP_CMS_ResponseStorageMsg(iUserID, ref struStorageResponseMsg))
                 {
-                    var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                    var errorCode = OTAP_CMS_GetLastError();
                     _deviceLogger.LogDeviceError(deviceId, null, "OTAP_CMS_ResponseStorageMsg UPLOAD_REPORT_REPLY failed, error: {ErrorCode}", errorCode);
                 }
                 else
@@ -687,9 +712,9 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 构建上传输入参数
         /// </summary>
-        private HCOTAPCMS.OTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM BuildUploadInputParam()
+        private OTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM BuildUploadInputParam()
         {
-            var struUploadObjInputParam = new HCOTAPCMS.OTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM();
+            var struUploadObjInputParam = new OTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM();
             struUploadObjInputParam.Init();
 
             // SS存储服务器配置
@@ -726,27 +751,25 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 订阅消息回调
         /// </summary>
-        public bool FSubscribeMsgCallback(int iUserID, ref HCOTAPCMS.OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData)
+        public bool FSubscribeMsgCallback(int iUserID, ref OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData)
         {
-            var deviceID = Encoding.UTF8.GetString(pParam.szDevID).TrimEnd('\0');
+            string deviceID = Encoding.UTF8.GetString(pParam.szDevID).TrimEnd('\0');
             try
             {
                 _deviceLogger.LogDeviceDebug(deviceID, "订阅消息回调: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
-
                 string szDomain = Encoding.UTF8.GetString(pParam.szDomain).TrimEnd('\0');
                 string szIdentifier = Encoding.UTF8.GetString(pParam.szIdentifier).TrimEnd('\0');
-
                 switch (pParam.dwType)
                 {
-                    case HCOTAPCMS.ENUM_OTAP_CMS_ATTRIBUTE_REPORT_MODEL:
+                    case ENUM_OTAP_CMS_ATTRIBUTE_REPORT_MODEL:
                         HandleAttributeReport(deviceID, szDomain, szIdentifier, pParam);
                         break;
 
-                    case HCOTAPCMS.ENUM_OTAP_CMS_SERVICE_QUERY_MODEL:
+                    case ENUM_OTAP_CMS_SERVICE_QUERY_MODEL:
                         HandleServiceQuery(deviceID, szDomain, szIdentifier, pParam);
                         break;
 
-                    case HCOTAPCMS.ENUM_OTAP_CMS_EVENT_REPORT_MODEL:
+                    case ENUM_OTAP_CMS_EVENT_REPORT_MODEL:
                         HandleEventReport(deviceID, szDomain, szIdentifier, pParam);
                         break;
 
@@ -768,7 +791,7 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 处理属性上报
         /// </summary>
-        private void HandleAttributeReport(string deviceID, string domain, string identifier, HCOTAPCMS.OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
+        private void HandleAttributeReport(string deviceID, string domain, string identifier, OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
         {
             try
             {
@@ -790,7 +813,7 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 处理服务查询
         /// </summary>
-        private void HandleServiceQuery(string deviceID, string domain, string identifier, HCOTAPCMS.OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
+        private void HandleServiceQuery(string deviceID, string domain, string identifier, OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
         {
             try
             {
@@ -812,13 +835,13 @@ namespace GrpcService.HKSDK
         /// <summary>
         /// 处理事件报告
         /// </summary>
-        private void HandleEventReport(string deviceID, string domain, string identifier, HCOTAPCMS.OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
+        private void HandleEventReport(string deviceID, string domain, string identifier, OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
         {
             try
             {
                 if (pParam.pOutBuf == IntPtr.Zero || pParam.dwOutBufSize == 0) return;
 
-                var struAlarmMsg = (HCOTAPCMS.OTAP_AMS_ALARM_MSG)Marshal.PtrToStructure(pParam.pOutBuf, typeof(HCOTAPCMS.OTAP_AMS_ALARM_MSG))!;
+                var struAlarmMsg = (OTAP_AMS_ALARM_MSG)Marshal.PtrToStructure(pParam.pOutBuf, typeof(OTAP_AMS_ALARM_MSG))!;
 
                 string strAlarmInfoBuf = "";
                 if (struAlarmMsg.pAlarmInfoBuf != IntPtr.Zero && struAlarmMsg.dwAlarmInfoLen > 0)
@@ -828,7 +851,7 @@ namespace GrpcService.HKSDK
                     strAlarmInfoBuf = Encoding.UTF8.GetString(byAlarmInfoBuf).TrimEnd('\0');
                 }
 
-                _deviceLogger.LogDeviceInfo(deviceID, "事件报告 - Domain: {Domain}, Identifier: {Identifier}, Topic: {Topic}, AlarmInfo: {AlarmInfo}",
+                _deviceLogger.LogDeviceInfo(struAlarmMsg.szDeviceID, "事件报告 - Domain: {Domain}, Identifier: {Identifier}, Topic: {Topic}, AlarmInfo: {AlarmInfo}",
                     domain, identifier, struAlarmMsg.szAlarmTopic, strAlarmInfoBuf.Truncate(200));
             }
             catch (Exception ex)
@@ -846,9 +869,9 @@ namespace GrpcService.HKSDK
             {
                 if (CMSServiceHelpers.CmsListenHandle > 0)
                 {
-                    if (!HCOTAPCMS.OTAP_CMS_StopListen(CMSServiceHelpers.CmsListenHandle))
+                    if (!OTAP_CMS_StopListen(CMSServiceHelpers.CmsListenHandle))
                     {
-                        var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                        var errorCode = OTAP_CMS_GetLastError();
                         _logger.LogError("OTAP_CMS_StopListen failed, error: {ErrorCode}", errorCode);
                     }
                     else
@@ -918,10 +941,10 @@ namespace GrpcService.HKSDK
         {
             var libraries = new[]
             {
-                ("libcrypto", HCOTAPCMS.ENUM_OTAP_CMS_INIT_CFG_LIBEAY_PATH),
-                ("libssl", HCOTAPCMS.ENUM_OTAP_CMS_INIT_CFG_SSLEAY_PATH),
-                ("libiconv2", HCOTAPCMS.ENUM_OTAP_CMS_INIT_CFG_LIBICONV_PATH),
-                ("libz", HCOTAPCMS.ENUM_OTAP_CMS_INIT_CFG_ZLIB_PATH)
+                ("libcrypto", ENUM_OTAP_CMS_INIT_CFG_LIBEAY_PATH),
+                ("libssl", ENUM_OTAP_CMS_INIT_CFG_SSLEAY_PATH),
+                ("libiconv2", ENUM_OTAP_CMS_INIT_CFG_LIBICONV_PATH),
+                ("libz", ENUM_OTAP_CMS_INIT_CFG_ZLIB_PATH)
             };
             foreach (var (libName, configType) in libraries)
             {
@@ -936,9 +959,9 @@ namespace GrpcService.HKSDK
                         continue;
                     }
 
-                    if (!HCOTAPCMS.OTAP_CMS_SetSDKInitCfg(configType, Marshal.StringToHGlobalAnsi(libPath)))
+                    if (!OTAP_CMS_SetSDKInitCfg(configType, Marshal.StringToHGlobalAnsi(libPath)))
                     {
-                        var errorCode = HCOTAPCMS.OTAP_CMS_GetLastError();
+                        var errorCode = OTAP_CMS_GetLastError();
                         _logger.LogError("设置库路径失败 {LibName}: {LibPath}, 错误码: {ErrorCode}", libName, libPath, errorCode);
                     }
                     else
