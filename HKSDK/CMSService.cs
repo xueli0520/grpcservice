@@ -17,7 +17,6 @@ namespace GrpcService.HKSDK
         private readonly ILogger<CMSService> _logger;
         private readonly IDeviceLoggerService _deviceLogger;
         private readonly HikDeviceConfiguration _config;
-        private readonly LibraryPathsConfiguration _libraryConfig;
         private readonly object _initLock = new();
         private readonly object _disposeLock = new();
         private bool _isInitialized = false;
@@ -34,14 +33,12 @@ namespace GrpcService.HKSDK
             ILogger<CMSService> logger,
             DeviceManager deviceManager,
             IDeviceLoggerService deviceLogger,
-            IOptions<HikDeviceConfiguration> config,
-            IOptions<LibraryPathsConfiguration> libraryConfig)
+            IOptions<HikDeviceConfiguration> config)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _deviceManager = deviceManager ?? throw new ArgumentNullException(nameof(deviceManager));
             _deviceLogger = deviceLogger ?? throw new ArgumentNullException(nameof(deviceLogger));
             _config = config?.Value ?? throw new ArgumentNullException(nameof(config));
-            _libraryConfig = libraryConfig?.Value ?? throw new ArgumentNullException(nameof(libraryConfig));
 
             // 配置校验
             ValidateConfiguration();

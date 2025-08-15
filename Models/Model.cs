@@ -4,6 +4,7 @@ namespace GrpcService.Models
 {
     public class GrpcServerConfiguration
     {
+        public bool? Single { get; set; }
         public string Host { get; set; } = "0.0.0.0";
         public int Port { get; set; } = 5000;
         public int MaxReceiveMessageSize { get; set; } = 4194304;
@@ -43,20 +44,6 @@ namespace GrpcService.Models
         public string Region { get; set; } = "Local";
     }
 
-    public class LibraryPathsConfiguration
-    {
-        public PlatformLibraryConfiguration Windows { get; set; } = new();
-        public PlatformLibraryConfiguration Linux { get; set; } = new();
-    }
-
-    public class PlatformLibraryConfiguration
-    {
-        public string BasePath { get; set; } = "";
-        public string LibCrypto { get; set; } = "";
-        public string LibSsl { get; set; } = "";
-        public string LibIconv { get; set; } = "";
-        public string LibZ { get; set; } = "";
-    }
 
     public class GrpcRequestItem<TRequest, TResponse>
     {

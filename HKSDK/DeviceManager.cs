@@ -1,4 +1,8 @@
-﻿using System.Collections.Concurrent;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Win32;
+using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Channels;
 
@@ -25,10 +29,13 @@ namespace GrpcService.HKSDK
         private readonly int _heartbeatCheckIntervalSeconds = DefaultHeartbeatCheckIntervalSeconds;
         private readonly int _maxConcurrentOperations = DefaultMaxConcurrentOperations;
 
-        public DeviceManager(ILogger<DeviceManager> logger)
+        private readonly SubscribeEvent _subscribeEvent;
+
+        public DeviceManager(ILogger<DeviceManager> logger, SubscribeEvent subscribeEvent)
         {
             _logger = logger;
             _devices = new ConcurrentDictionary<string, DeviceConnection>();
+            _subscribeEvent = subscribeEvent;
 
             // 初始化命令队列 - 无界通道，支持高并发
             var options = new UnboundedChannelOptions
@@ -89,12 +96,15 @@ namespace GrpcService.HKSDK
                     IsConnected = true,
                     RegisterTime = DateTime.Now
                 };
-
-                // 添加到设备列表
-                _devices.AddOrUpdate(deviceId, device, (key, oldValue) => device);
-
                 _logger.LogInformation("设备注册成功: {DeviceId}, IP: {DeviceIP}, Port: {DevicePort}, UserId: {UserId}",
                     deviceId, device.DeviceIP, device.DevicePort, lUserID);
+                if (!device.Register)
+                {
+                    PublishDeviceEvent(device);
+                    device.RegisterTime = DateTime.Now;
+                }
+                // 添加到设备列表
+                _devices.AddOrUpdate(deviceId, device, (key, oldValue) => device);
                 return (true, "设备注册成功", deviceId);
             }
             catch (Exception ex)
@@ -115,6 +125,14 @@ namespace GrpcService.HKSDK
                 {
                     device.LastHeartbeat = DateTime.Now;
                     _logger.LogDebug("更新设备心跳: {DeviceId}", deviceId);
+                    if (!device.Register) PublishDeviceEvent(device);
+                    var evt = new DeviceEvent
+                    {
+                        DeviceId = deviceId,
+                        EventType = "HeartBeat",
+                        Payload = device.DeviceIP,
+                    };
+                    _subscribeEvent.Publish(evt);
                     return true;
                 }
             }
@@ -123,395 +141,22 @@ namespace GrpcService.HKSDK
             return false;
         }
 
-        /// <summary>
-        /// 执行设备命令 - 异步队列处理
-        /// </summary>
-        public async Task<(bool Success, string Message, Dictionary<string, object> ResultData)>
-            ExecuteDeviceCommandAsync(string deviceId, string commandType, Dictionary<string, object> parameters,
-            CancellationToken cancellationToken = default)
+        public void PublishDeviceEvent(DeviceConnection device)
         {
-            if (!_devices.TryGetValue(deviceId, out var device) || device.IsConnected != true)
+            Task.Run(() =>
             {
-                return (false, $"设备未连接: {deviceId}", null);
-            }
-
-            var command = new DeviceCommand
-            {
-                CommandId = Guid.NewGuid().ToString(),
-                DeviceId = deviceId,
-                CommandType = commandType,
-                Parameters = parameters,
-                TaskCompletionSource = new TaskCompletionSource<(bool, string, Dictionary<string, object>)>(),
-                CreatedTime = DateTime.Now,
-                CancellationToken = cancellationToken
-            };
-
-            try
-            {
-                // 将命令加入队列
-                await _commandWriter.WriteAsync(command, cancellationToken);
-                _logger.LogDebug("命令已加入队列: {CommandId}, DeviceId: {DeviceId}, Type: {CommandType}",
-                    command.CommandId, deviceId, commandType);
-
-                // 等待命令执行完成（带超时）
-                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
-                return await command.TaskCompletionSource.Task;
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning("设备命令执行被取消: {CommandId}, DeviceId: {DeviceId}", command.CommandId, deviceId);
-                return (false, "命令执行被取消", null);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "执行设备命令异常: {CommandId}, DeviceId: {DeviceId}", command.CommandId, deviceId);
-                return (false, $"执行命令异常: {ex.Message}", null);
-            }
-        }
-
-        /// <summary>
-        /// 处理命令队列
-        /// </summary>
-        private async Task ProcessCommandQueueAsync(CancellationToken cancellationToken)
-        {
-            await foreach (var command in _commandReader.ReadAllAsync(cancellationToken))
-            {
-                // 使用信号量控制并发
-                await _deviceOperationSemaphore.WaitAsync(cancellationToken);
-
-                // 在后台线程中处理命令
-                _ = Task.Run(async () =>
+                var evt = new DeviceEvent
                 {
-                    try
-                    {
-                        var result = await ProcessDeviceCommandAsync(command);
-                        command.TaskCompletionSource.SetResult(result);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "处理设备命令异常: {CommandId}", command.CommandId);
-                        command.TaskCompletionSource.SetResult((false, $"命令处理异常: {ex.Message}", null));
-                    }
-                    finally
-                    {
-                        _deviceOperationSemaphore.Release();
-                    }
-                }, cancellationToken);
-            }
-        }
-
-        /// <summary>
-        /// 处理具体的设备命令
-        /// </summary>
-        private async Task<(bool Success, string Message, Dictionary<string, object> ResultData)>
-            ProcessDeviceCommandAsync(DeviceCommand command)
-        {
-            if (!_devices.TryGetValue(command.DeviceId, out var device) || device.IsConnected != true)
-            {
-                return (false, $"设备未连接: {command.DeviceId}", null);
-            }
-
-            try
-            {
-                _logger.LogDebug("开始处理设备命令: {CommandId}, DeviceId: {DeviceId}, Type: {CommandType}",
-                    command.CommandId, command.DeviceId, command.CommandType);
-
-                // 根据命令类型执行相应操作
-                return command.CommandType.ToLower() switch
-                {
-                    "getstatus" => await GetDeviceStatusAsync(device),
-                    "opendoor" => await OpenDoorAsync(device, command.Parameters),
-                    "reboot" => await RebootDeviceAsync(device, command.Parameters),
-                    "synctime" => await SyncTimeAsync(device, command.Parameters),
-                    "getdeviceinfo" => await GetDeviceInfoAsync(device),
-                    "updateuserall" => await UpdateUserAllAsync(device, command.Parameters),
-                    "getuserlist" => await GetUserListAsync(device, command.Parameters),
-                    "setdoormode" => await SetDoorModeAsync(device, command.Parameters),
-                    "updatewhite" => await UpdateWhiteAsync(device, command.Parameters),
-                    "deletewhite" => await DeleteWhiteAsync(device, command.Parameters),
-                    "pagewhite" => await PageWhiteAsync(device, command.Parameters),
-                    "detailwhite" => await DetailWhiteAsync(device, command.Parameters),
-                    "updatetimezone" => await UpdateTimezoneAsync(device, command.Parameters),
-                    "querytimezone" => await QueryTimezoneAsync(device, command.Parameters),
-                    "setdoortemplate" => await SetDoorTemplateAsync(device, command.Parameters),
-                    "syncdeviceparameter" => await SyncDeviceParameterAsync(device, command.Parameters),
-                    "getwhiteusertotal" => await GetWhiteUserTotalAsync(device),
-                    "getversion" => await GetVersionAsync(device),
-                    _ => (false, $"不支持的命令类型: {command.CommandType}", null)
+                    DeviceId = device.DeviceId,
+                    EventType = "DeviceRegistered",
+                    Payload = device.DeviceIP,
                 };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "执行设备命令异常: {CommandId}, DeviceId: {DeviceId}, CommandType: {CommandType}",
-                    command.CommandId, command.DeviceId, command.CommandType);
-                return (false, $"执行命令异常: {ex.Message}", null);
-            }
+                evt.Payload = device.DeviceIP;
+                _subscribeEvent.Publish(evt);
+            });
         }
 
-        /// <summary>
-        /// 获取设备状态
-        /// </summary>
-        private async Task<(bool Success, string Message, Dictionary<string, object> ResultData)>
-            GetDeviceStatusAsync(DeviceConnection device)
-        {
-            var resultData = new Dictionary<string, object>
-            {
-                ["device_id"] = device.DeviceId,
-                ["status"] = device.IsConnected == true ? "online" : "offline",
-                ["last_heartbeat"] = device.LastHeartbeat?.ToString("yyyy-MM-dd HH:mm:ss") ?? "未知",
-                ["user_id"] = device.UserId?.ToString() ?? "未知",
-                ["device_ip"] = device.DeviceIP ?? "未知",
-                ["device_port"] = device.DevicePort?.ToString() ?? "未知",
-                ["register_time"] = device.RegisterTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "未知"
-            };
-
-            return (true, "获取状态成功", resultData);
-        }
-
-        // Fix for CS9006: Adjusting the number of '$' characters in interpolated raw string literals to match the number of '{' characters.
-
-        private async Task<(bool Success, string Message, Dictionary<string, object> ResultData)>
-           OpenDoorAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            try
-            {
-                var userId = device.UserId ?? -1;
-
-                // Corrected the interpolated raw string literal
-                var openDoorJson = $$"""
-               {
-                   "AcsEvent": {
-                       "type": "unlock",
-                       "userType": "normal"
-                   }
-               }
-               """;
-
-                // 使用OTAP协议下发开门命令
-                CMSServiceHelpers.Cms_SetConfigDev(userId, HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_MODEL_SERVER_OPERATE,
-                    "event",
-                    "unlock",
-                    openDoorJson,
-                    _logger
-                );
-
-                var resultData = new Dictionary<string, object>
-                {
-                    ["command"] = "open_door",
-                    ["device_id"] = device.DeviceId,
-                    ["status"] = "executed",
-                    ["timestamp"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                };
-
-                _logger.LogInformation("开门命令执行成功: {DeviceId}", device.DeviceId);
-                return (true, "开门命令执行成功", resultData);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "开门命令执行失败: {DeviceId}", device.DeviceId);
-                return (false, $"开门命令执行失败: {ex.Message}", null);
-            }
-        }
-
-        /// <summary>
-        /// 重启设备
-        /// </summary>
-        private async Task<(bool Success, string Message, Dictionary<string, object> ResultData)>
-   RebootDeviceAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            try
-            {
-                // Corrected the interpolated raw string literal
-                var rebootJson = $$"""
-               {
-                   "System": {
-                       "reboot": true
-                   }
-               }
-               """;
-                CMSServiceHelpers.Cms_SetConfigDev(
-                    device.UserId.Value, HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_MODEL_SERVER_OPERATE,
-                    "system",
-                    "reboot",
-                    rebootJson,
-                    _logger
-                );
-
-                var resultData = new Dictionary<string, object>
-                {
-                    ["command"] = "reboot",
-                    ["device_id"] = device.DeviceId,
-                    ["status"] = "executed"
-                };
-
-                return (true, "重启命令执行成功", resultData);
-            }
-            catch (Exception ex)
-            {
-                return (false, $"重启命令执行失败: {ex.Message}", null);
-            }
-        }
-
-        /// <summary>
-        /// 同步时间
-        /// </summary>
-        private async Task<(bool Success, string Message, Dictionary<string, object> ResultData)>
-   SyncTimeAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            try
-            {
-                var timestamp = parameters.GetValueOrDefault("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds());
-                // Corrected the interpolated raw string literal
-                var timeJson = $$"""
-               {
-                   "Time": {
-                       "timeMode": "NTP",
-                       "localTime": "{{DateTimeOffset.FromUnixTimeSeconds((long)timestamp):yyyy-MM-ddTHH:mm:ss}}"
-                   }
-               }
-               """;
-
-                CMSServiceHelpers.Cms_SetConfigDev(
-                    device.UserId.Value,
-                    HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_SET_MODEL_ATTR,
-                    "system",
-                    "time",
-                    timeJson,
-                    _logger
-                );
-
-                var resultData = new Dictionary<string, object>
-                {
-                    ["command"] = "sync_time",
-                    ["device_id"] = device.DeviceId,
-                    ["status"] = "executed",
-                    ["sync_time"] = DateTimeOffset.FromUnixTimeSeconds((long)timestamp).ToString("yyyy-MM-dd HH:mm:ss")
-                };
-
-                return (true, "时间同步成功", resultData);
-            }
-            catch (Exception ex)
-            {
-                return (false, $"时间同步失败: {ex.Message}", null);
-            }
-        }
-
-        /// <summary>
-        /// 获取设备信息
-        /// </summary>
-        private async Task<(bool Success, string Message, Dictionary<string, object> ResultData)>
-            GetDeviceInfoAsync(DeviceConnection device)
-        {
-            try
-            {
-                // 获取设备基本信息
-                CMSServiceHelpers.Cms_SetConfigDev(
-                    device.UserId.Value,
-                    HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_GET_MODEL_ATTR,
-                    "system",
-                    "deviceInfo",
-                    "",
-                    _logger
-                );
-
-                var resultData = new Dictionary<string, object>
-                {
-                    ["device_id"] = device.DeviceId,
-                    ["device_ip"] = device.DeviceIP ?? "未知",
-                    ["device_port"] = device.DevicePort?.ToString() ?? "未知",
-                    ["last_online_time"] = device.LastHeartbeat?.ToString("yyyy-MM-dd HH:mm:ss") ?? "未知",
-                    ["register_time"] = device.RegisterTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "未知"
-                };
-
-                return (true, "获取设备信息成功", resultData);
-            }
-            catch (Exception ex)
-            {
-                return (false, $"获取设备信息失败: {ex.Message}", null);
-            }
-        }
-
-        // 其他命令处理方法的占位符实现
-        private async Task<(bool, string, Dictionary<string, object>)> UpdateUserAllAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现用户批量更新逻辑
-            return (true, "用户批量更新成功", new Dictionary<string, object> { ["updated_count"] = 0 });
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> GetUserListAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现获取用户列表逻辑
-            return (true, "获取用户列表成功", new Dictionary<string, object> { ["users"] = new List<object>() });
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> SetDoorModeAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现设置门禁模式逻辑
-            return (true, "设置门禁模式成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> UpdateWhiteAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现更新白名单逻辑
-            return (true, "更新白名单成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> DeleteWhiteAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现删除白名单逻辑
-            return (true, "删除白名单成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> PageWhiteAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现分页获取白名单逻辑
-            return (true, "分页获取白名单成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> DetailWhiteAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现获取白名单详情逻辑
-            return (true, "获取白名单详情成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> UpdateTimezoneAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现更新时段逻辑
-            return (true, "更新时段成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> QueryTimezoneAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现查询时段逻辑
-            return (true, "查询时段成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> SetDoorTemplateAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现设置门禁模板逻辑
-            return (true, "设置门禁模板成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> SyncDeviceParameterAsync(DeviceConnection device, Dictionary<string, object> parameters)
-        {
-            // TODO: 实现同步设备参数逻辑
-            return (true, "同步设备参数成功", new Dictionary<string, object>());
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> GetWhiteUserTotalAsync(DeviceConnection device)
-        {
-            // TODO: 实现获取白名单总数逻辑
-            return (true, "获取白名单总数成功", new Dictionary<string, object> { ["total_count"] = 0 });
-        }
-
-        private async Task<(bool, string, Dictionary<string, object>)> GetVersionAsync(DeviceConnection device)
-        {
-            // TODO: 实现获取设备版本逻辑
-            return (true, "获取设备版本成功", new Dictionary<string, object> { ["version"] = "1.0.0" });
-        }
-
+        public void RegisterEvent(string deviceId) => _devices[deviceId].Register = true;
         /// <summary>
         /// 获取在线设备列表
         /// </summary>
@@ -629,6 +274,209 @@ namespace GrpcService.HKSDK
             }
         }
 
+        /// <summary>
+        /// 处理命令队列
+        /// </summary>
+        private async Task ProcessCommandQueueAsync(CancellationToken cancellationToken)
+        {
+            await foreach (var command in _commandReader.ReadAllAsync(cancellationToken))
+            {
+                // 使用信号量控制并发
+                await _deviceOperationSemaphore.WaitAsync(cancellationToken);
+
+                // 在后台线程中处理命令
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var result = await ProcessDeviceCommandAsync(command);
+                        command.TaskCompletionSource.SetResult(result);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "处理设备命令异常: {CommandId}", command.CommandId);
+                        command.TaskCompletionSource.SetResult((false, $"命令处理异常: {ex.Message}", null));
+                    }
+                    finally
+                    {
+                        _deviceOperationSemaphore.Release();
+                    }
+                }, cancellationToken);
+            }
+        }
+
+        /// <summary>
+        /// 处理具体的设备命令
+        /// </summary>
+        private async Task<(bool Success, string Message, Dictionary<string, object> ResultData)>
+            ProcessDeviceCommandAsync(DeviceCommand command)
+        {
+            if (!_devices.TryGetValue(command.DeviceId, out var device) || device.IsConnected != true)
+            {
+                return (false, $"设备未连接: {command.DeviceId}", null);
+            }
+
+            try
+            {
+                _logger.LogDebug("开始处理设备命令: {CommandId}, DeviceId: {DeviceId}, Type: {CommandType}",
+                    command.CommandId, command.DeviceId, command.CommandType);
+
+                // 根据命令类型执行相应操作
+                return command.CommandType.ToLower() switch
+                {
+                    //"getstatus" => await GetDeviceStatusAsync(device),
+                    //"opendoor" => await OpenDoorAsync(device, command.Parameters),
+                    //"reboot" => await RebootDeviceAsync(device, command.Parameters),
+                    //"synctime" => await SyncTimeAsync(device, command.Parameters),
+                    //"getdeviceinfo" => await GetDeviceInfoAsync(device),
+                    //"updateuserall" => await UpdateUserAllAsync(device, command.Parameters),
+                    //"getuserlist" => await GetUserListAsync(device, command.Parameters),
+                    //"setdoormode" => await SetDoorModeAsync(device, command.Parameters),
+                    //"updatewhite" => await UpdateWhiteAsync(device, command.Parameters),
+                    //"deletewhite" => await DeleteWhiteAsync(device, command.Parameters),
+                    //"pagewhite" => await PageWhiteAsync(device, command.Parameters),
+                    //"detailwhite" => await DetailWhiteAsync(device, command.Parameters),
+                    //"updatetimezone" => await UpdateTimezoneAsync(device, command.Parameters),
+                    //"querytimezone" => await QueryTimezoneAsync(device, command.Parameters),
+                    //"setdoortemplate" => await SetDoorTemplateAsync(device, command.Parameters),
+                    //"syncdeviceparameter" => await SyncDeviceParameterAsync(device, command.Parameters),
+                    //"getwhiteusertotal" => await GetWhiteUserTotalAsync(device),
+                    //"getversion" => await GetVersionAsync(device),
+                    _ => (false, $"不支持的命令类型: {command.CommandType}", null)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "执行设备命令异常: {CommandId}, DeviceId: {DeviceId}, CommandType: {CommandType}",
+                    command.CommandId, command.DeviceId, command.CommandType);
+                return (false, $"执行命令异常: {ex.Message}", null);
+            }
+        }
+
+        // 统一的 ISAPI 执行器
+        public Task<T> ExecuteIsapi<T>(string deviceId, string url, string method, string? inXml, Func<bool, string, T> map) where T : class
+        {
+            if (!_devices.TryGetValue(deviceId, out var device) || device.IsConnected != true)
+            {
+                return Task.FromResult(map(false, "设备未连接") as T);
+            }
+            HCOTAPCMS.OTAP_CMS_ISAPI_PT_PARAM struParam = new();
+            struParam.Init();
+
+            //输入ISAPI协议命令
+            uint dwRequestUrlLen = (uint)url.Length;
+            struParam.pRequestUrl = Marshal.StringToHGlobalAnsi(url);
+            struParam.dwRequestUrlLen = dwRequestUrlLen;
+            Console.WriteLine("透传URL:" + url);
+
+            //输入XML/JSON报文, GET命令输入报文为空
+            if (inXml != "" || inXml != null)
+            {
+                byte[] byInputParam = Encoding.UTF8.GetBytes(inXml);
+                int iXMLInputLen = byInputParam.Length;
+
+                struParam.pInBuffer = Marshal.AllocHGlobal(iXMLInputLen);
+                Marshal.Copy(byInputParam, 0, struParam.pInBuffer, iXMLInputLen);
+                struParam.dwInSize = (uint)byInputParam.Length;
+
+                Console.WriteLine("透传输入报文:" + inXml);
+            }
+
+            struParam.pOutBuffer = Marshal.AllocHGlobal(20 * 1024);    //输出缓冲区，如果接口调用失败提示错误码43，需要增大输出缓冲区
+            struParam.dwOutSize = 20 * 1024;
+
+            if (!HCOTAPCMS.OTAP_CMS_ISAPIPassThrough((int)device.UserId, ref struParam))
+            {
+                _logger.LogError($"{deviceId},{url} OTAP_CMS_ISAPIPassThrough failed, error:" + HCOTAPCMS.OTAP_CMS_GetLastError());
+                return Task.FromResult(map(false, $"指令下发失败{HCOTAPCMS.OTAP_CMS_GetLastError()}"));
+            }
+            // 读取输出
+            var returned = struParam.dwReturnedLen > 0 ? (int)struParam.dwReturnedLen : (int)struParam.dwOutSize;
+            var outBytes = new byte[returned];
+            Marshal.Copy(struParam.pOutBuffer, outBytes, 0, outBytes.Length);
+            var outText = Encoding.UTF8.GetString(outBytes).TrimEnd('\0');
+
+            // 释放
+            Marshal.FreeHGlobal(struParam.pRequestUrl);
+            Marshal.FreeHGlobal(struParam.pOutBuffer);
+            Marshal.FreeHGlobal(struParam.pCondBuffer);
+            if (inXml != null) Marshal.FreeHGlobal(struParam.pInBuffer);
+
+            return Task.FromResult(map(true, outText));
+        }
+        public Task<(bool Success, string Message)> Cms_SetConfigDevAsync(string deviceId,
+    HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM enumMsg, string sDomain, string sIdentifier, string inputData)
+        {
+            if (!_devices.TryGetValue(deviceId, out var device) || device.IsConnected != true)
+            {
+                return Task.FromResult((false, "设备未连接"));
+            }
+            try
+            {
+                HCOTAPCMS.OTAP_CMS_CONFIG_DEV_PARAM struConfigParam = new HCOTAPCMS.OTAP_CMS_CONFIG_DEV_PARAM();
+                struConfigParam.Init();
+                //子设备ID,设备本身固定为global
+                string sChildID = "global";
+                sChildID.CopyTo(0, struConfigParam.szChildID, 0, sChildID.Length);
+                //设备本地资源标识,设备本身固定为0
+                string sLocalIndex = "0";
+                sLocalIndex.CopyTo(0, struConfigParam.szLocalIndex, 0, sLocalIndex.Length);
+                //设备资源类型,设备本身固定为global
+                string sResourceType = "global";
+                sResourceType.CopyTo(0, struConfigParam.szResourceType, 0, sResourceType.Length);
+                //功能领域，不同功能对应不同领域，详见OTAP协议文档
+                sDomain.CopyTo(0, struConfigParam.szDomain, 0, sDomain.Length);
+                //功能标识/属性标识，不同功能对应不同领域，详见OTAP协议文档
+                sIdentifier.CopyTo(0, struConfigParam.szIdentifier, 0, sIdentifier.Length);
+
+                if (!string.IsNullOrEmpty(inputData))
+                {
+                    byte[] byInputParam = Encoding.UTF8.GetBytes(inputData);
+                    int iXMLInputLen = byInputParam.Length;
+                    struConfigParam.pInBuf = Marshal.AllocHGlobal(iXMLInputLen);
+                    Marshal.Copy(byInputParam, 0, struConfigParam.pInBuf, iXMLInputLen);
+                    struConfigParam.dwInBufSize = (uint)byInputParam.Length;
+                }
+
+                struConfigParam.pOutBuf = Marshal.AllocHGlobal(20 * 1024);    //输出缓冲区，如果接口调用失败提示错误码43，需要增大输出缓冲区
+                struConfigParam.dwOutBufSize = 20 * 1024;
+
+                bool success = HCOTAPCMS.OTAP_CMS_ConfigDev((int)device.UserId, enumMsg, ref struConfigParam);
+                string outText;
+
+                if (success)
+                {
+                    var returned = (int)struConfigParam.dwOutBufSize;
+                    var outBufferPtr = struConfigParam.pOutBuf;
+                    var outBytes = new byte[returned];
+                    Marshal.Copy(outBufferPtr, outBytes, 0, outBytes.Length);
+                    outText = Encoding.UTF8.GetString(outBytes).TrimEnd('\0');
+                    _logger.LogInformation($"调用成功:{outText}");
+                }
+                else
+                {
+                    outText = $"调用失败: {HCOTAPCMS.OTAP_CMS_GetLastError()}";
+                    _logger.LogError(outText);
+                }
+
+                // 释放内存
+                if (struConfigParam.pInBuf != IntPtr.Zero)
+                    Marshal.FreeHGlobal(struConfigParam.pInBuf);
+                if (struConfigParam.pOutBuf != IntPtr.Zero)
+                    Marshal.FreeHGlobal(struConfigParam.pOutBuf);
+
+                return Task.FromResult((success, outText));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cms_SetConfigDevAsync异常");
+                return Task.FromResult((false, ex.Message));
+            }
+        }
+
+
+
+
         public override void Dispose()
         {
             lock (_disposeLock)
@@ -690,6 +538,7 @@ namespace GrpcService.HKSDK
         public bool? IsConnected { get; set; }
         public DateTime? LastHeartbeat { get; set; }
         public DateTime? RegisterTime { get; set; }
+        public bool Register { get; set; }
     }
 
     // 设备命令模型

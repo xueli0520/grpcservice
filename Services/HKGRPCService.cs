@@ -1,286 +1,277 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using GrpcService.Common;
 using GrpcService.HKSDK;
 using GrpcService.Models;
+using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Threading.Channels;
 
 namespace GrpcService.Services
 {
-    public class HkDeviceService : HikDeviceService.HikDeviceServiceBase
+    public class HkDeviceService(
+        ILogger<HkDeviceService> logger,
+        DeviceManager deviceManager,
+        IGrpcRequestQueueService requestQueue,
+        IDeviceLoggerService deviceLogger, SubscribeEvent subscribeEvent) : HikDeviceService.HikDeviceServiceBase
     {
-        private readonly ILogger<HkDeviceService> _logger;
-        private readonly DeviceManager _deviceManager;
-        private readonly IGrpcRequestQueueService _requestQueue;
-        private readonly IDeviceLoggerService _deviceLogger;
-
-        public HkDeviceService(
-            ILogger<HkDeviceService> logger,
-            DeviceManager deviceManager,
-            IGrpcRequestQueueService requestQueue,
-            IDeviceLoggerService deviceLogger)
+        private readonly ILogger<HkDeviceService> _logger = logger;
+        private readonly DeviceManager _deviceManager = deviceManager;
+        private readonly IGrpcRequestQueueService _requestQueue = requestQueue;
+        private readonly IDeviceLoggerService _deviceLogger = deviceLogger;
+        private readonly SubscribeEvent _bus = subscribeEvent;
+        /// <summary>
+        /// 订阅推送事件
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="responseStream"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public override async Task SubscribeAllEvents(Empty req, IServerStreamWriter<DeviceEvent> responseStream, ServerCallContext context)
         {
-            _logger = logger;
-            _deviceManager = deviceManager;
-            _requestQueue = requestQueue;
-            _deviceLogger = deviceLogger;
-        }
-
-        public override async Task<OpenDoorResponse> OpenDoor(OpenDoorRequest request, ServerCallContext context)
-        {
-            return await _requestQueue.EnqueueRequestAsync(
-                request.DeviceId,
-                "OpenDoor",
-                request,
-                async (req, ct) =>
+            var reader = _bus.Subscribe();
+            try
+            {
+                await foreach (var evt in reader.ReadAllAsync(context.CancellationToken))
                 {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到开门请求: Operator={Operator}, MessageId={MessageId}",
-                        req.Operator, req.MessageId);
-
-                    var parameters = new Dictionary<string, object>();
-                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
-                        req.DeviceId, "opendoor", parameters, ct);
-
-                    return new OpenDoorResponse
-                    {
-                        Success = result.Success,
-                        Message = result.Message,
-                        ErrorCode = result.Success ? "0" : "1001",
-                        DeviceId = req.DeviceId
-                    };
-                },
-                context.CancellationToken);
+                    await responseStream.WriteAsync(evt);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogError("grpc客户端取消订阅");
+            }
         }
-
-        public override async Task<RebootResponse> Reboot(RebootRequest request, ServerCallContext context)
+        /// <summary>
+        /// 获取服务信息（健康检查）
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public override Task<ServerInfoResponse> GetServerInfo(Empty request, ServerCallContext context)
         {
-            return await _requestQueue.EnqueueRequestAsync(
-                request.DeviceId,
-                "Reboot",
-                request,
-                async (req, ct) =>
-                {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到重启请求: Operator={Operator}, MessageId={MessageId}",
-                        req.Operator, req.MessageId);
+            var uptime = (long)(DateTime.UtcNow - DateTime.UtcNow).TotalSeconds;
+            var response = new ServerInfoResponse
+            {
+                ServerName = "HikDevice gRPC Server",
+                Version = "1.0.0",
+                UptimeSeconds = uptime,
+                Status = "OK"
+            };
 
-                    var parameters = new Dictionary<string, object>();
-                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
-                        req.DeviceId, "reboot", parameters, ct);
-
-                    return new RebootResponse
-                    {
-                        Success = result.Success,
-                        Message = result.Message,
-                        ErrorCode = result.Success ? "0" : "1002",
-                        DeviceId = req.DeviceId
-                    };
-                },
-                context.CancellationToken);
+            return Task.FromResult(response);
         }
-
+        /// <summary>
+        /// 注册设备回调
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        public override Task<RegisterResponse> Register(RegisterRequest req, ServerCallContext ctx)
+        {
+            _deviceManager.RegisterEvent(req.DeviceId);
+            return Task.FromResult(new RegisterResponse { Success = true, DeviceId = req.DeviceId });
+        }
+        /// <summary>
+        /// 远程开门
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        public override Task<OpenDoorResponse> OpenDoor(OpenDoorRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/RemoteControl/door/1", "PUT",
+                ConfigFileUtil.GetReqBodyFromTemplate("\\conf\\Acs\\AcsRemoteControlDoor.xml", new Dictionary<string, object> { { "cmd", "open" } }),
+                (ok, body) => new OpenDoorResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1001", DeviceId = req.DeviceId });
+        /// <summary>
+        /// 重启设备
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        public override Task<RebootResponse> Reboot(RebootRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/System/reboot", "PUT", "",
+                (ok, body) => new RebootResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1002", DeviceId = req.DeviceId });
+        /// <summary>
+        /// 同步时间
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public override async Task<SyncTimeResponse> SyncTime(SyncTimeRequest request, ServerCallContext context)
         {
-            return await _requestQueue.EnqueueRequestAsync(
-                request.DeviceId,
-                "SyncTime",
-                request,
-                async (req, ct) =>
+            var currentTime = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssK");
+            return await _deviceManager.ExecuteIsapi(request.DeviceId, "PUT /ISAPI/System/time", "PUT", ConfigFileUtil.GetReqBodyFromTemplate("\\conf\\Basic\\SystemTime.xml", new Dictionary<string, object> { { "localTime", currentTime } }),
+                (ok, body) => new SyncTimeResponse
                 {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到同步时间请求: Timestamp={Timestamp}, Operator={Operator}",
-                        req.Timestamp, req.Operator);
-
-                    var parameters = new Dictionary<string, object>
-                    {
-                        ["timestamp"] = req.Timestamp
-                    };
-
-                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
-                        req.DeviceId, "synctime", parameters, ct);
-
-                    return new SyncTimeResponse
-                    {
-                        Success = result.Success,
-                        Message = result.Message,
-                        ErrorCode = result.Success ? "0" : "1003",
-                        DeviceId = req.DeviceId
-                    };
-                },
-                context.CancellationToken);
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1003",
+                    DeviceId = request.DeviceId,
+                });
         }
-
-        public override async Task<GetDeviceInfoResponse> GetDeviceInfo(GetDeviceInfoRequest request, ServerCallContext context)
+        /// <summary>
+        /// 获取设备信息
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        public override Task<GetVersionResponse> GetVersion(GetVersionRequest req, ServerCallContext ctx)
         {
-            return await _requestQueue.EnqueueRequestAsync(
-                request.DeviceId,
-                "GetDeviceInfo",
-                request,
-                async (req, ct) =>
-                {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到获取设备信息请求: Operator={Operator}, MessageId={MessageId}",
-                        req.Operator, req.MessageId);
-
-                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
-                        req.DeviceId, "getdeviceinfo", new Dictionary<string, object>(), ct);
-
-                    var response = new GetDeviceInfoResponse
-                    {
-                        Success = result.Success,
-                        Message = result.Message,
-                        ErrorCode = result.Success ? "0" : "1004",
-                        DeviceId = req.DeviceId
-                    };
-
-                    if (result.Success && result.ResultData != null)
-                    {
-                        response.DeviceInfo = new DeviceInfo
-                        {
-                            DeviceId = result.ResultData.GetValueOrDefault("device_id", req.DeviceId).ToString()!,
-                            IpAddress = result.ResultData.GetValueOrDefault("device_ip", "未知").ToString()!,
-                            LastOnlineTime = DateTimeOffset.Parse(
-                                result.ResultData.GetValueOrDefault("last_online_time", DateTime.Now.ToString()).ToString()!)
-                                .ToUnixTimeSeconds()
-                        };
-                    }
-
-                    return response;
-                },
-                context.CancellationToken);
+            var result = _deviceManager.Cms_SetConfigDevAsync(req.DeviceId, HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_GET_MODEL_ATTR, "InfoMgr", "DeviceVersion", "");
+            return Task.FromResult(new GetVersionResponse { Success = true });
         }
+        /// <summary>
+        /// 设置门禁模式
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        public override Task<SetDoorModeResponse> SetDoorMode(SetDoorModeRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/DoorMode", "PUT",
+                $"<DoorMode><mode>{req.Mode}</mode></DoorMode>",
+                (ok, body) => new SetDoorModeResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1006", DeviceId = req.DeviceId });
+        public override Task<UpdateUserAllResponse> UpdateUserAll(UpdateUserAllRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/UserInfo/Record", "PUT",
+                BuildUserXml(req.Users),
+                (ok, body) => new UpdateUserAllResponse
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1007",
+                    DeviceId = req.DeviceId,
+                    UpdatedCount = ok ? req.Users.Count : 0,
+                    TotalCount = req.Users.Count
+                });
 
-        public override async Task<GetDeviceStatusResponse> GetDeviceStatus(GetDeviceStatusRequest request, ServerCallContext context)
+        public override Task<GetUserListResponse> GetUserList(GetUserListRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, $"/ISAPI/AccessControl/UserInfo/Record?pageNo={req.PageNumber}&pageSize={req.PageSize}", "GET", null,
+                (ok, body) => new GetUserListResponse
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1008",
+                    DeviceId = req.DeviceId,
+                    TotalCount = 0
+                });
+
+        public override Task<UpdateWhiteResponse> UpdateWhite(UpdateWhiteRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/WhiteList/Record", "PUT",
+                BuildWhiteListXml(req.Users),
+                (ok, body) => new UpdateWhiteResponse
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1009",
+                    DeviceId = req.DeviceId,
+                    UpdatedCount = ok ? req.Users.Count : 0,
+                    TotalCount = req.Users.Count
+                });
+
+        public override Task<DeleteWhiteResponse> DeleteWhite(DeleteWhiteRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/WhiteList/Record", "DELETE",
+                BuildDeleteWhiteXml(req.CustomIds),
+                (ok, body) => new DeleteWhiteResponse
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1010",
+                    DeviceId = req.DeviceId,
+                    DeletedCount = ok ? req.CustomIds.Count : 0,
+                    TotalCount = req.CustomIds.Count
+                });
+
+        public override Task<PageWhiteResponse> PageWhite(PageWhiteRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, $"/ISAPI/AccessControl/WhiteList/Record?beginNo={req.BeginNo}&pageSize={req.PageSize}", "GET", null,
+                (ok, body) => new PageWhiteResponse
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1011",
+                    DeviceId = req.DeviceId,
+                    TotalCount = 0
+                });
+
+        public override Task<DetailWhiteResponse> DetailWhite(DetailWhiteRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, $"/ISAPI/AccessControl/WhiteList/Record?code={req.Code}", "GET", null,
+                (ok, body) => new DetailWhiteResponse
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1012",
+                    DeviceId = req.DeviceId
+                });
+
+        public override Task<UpdateTimezoneResponse> UpdateTimezone(UpdateTimezoneRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/TimeZone", "PUT",
+                BuildTimezoneXml(req.TimezoneGroup),
+                (ok, body) => new UpdateTimezoneResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1013", DeviceId = req.DeviceId });
+
+        public override Task<QueryTimezoneResponse> QueryTimezone(QueryTimezoneRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/TimeZone", "GET", null,
+                (ok, body) => new QueryTimezoneResponse
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1014",
+                    DeviceId = req.DeviceId
+                });
+
+        public override Task<DoorTemplateResponse> SetDoorTemplate(DoorTemplateRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/DoorTemplate", "PUT",
+                $"<DoorTemplate><status>{req.Status}</status></DoorTemplate>",
+                (ok, body) => new DoorTemplateResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1015", DeviceId = req.DeviceId });
+
+        public override Task<SyncDeviceParameterResponse> SyncDeviceParameter(SyncDeviceParameterRequest req, ServerCallContext ctx)
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/System/deviceParameter", "PUT", null,
+                (ok, body) => new SyncDeviceParameterResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1016", DeviceId = req.DeviceId });
+
+        public override Task<GetWhiteUserTotalResponse> GetWhiteUserTotal(GetWhiteUserTotalRequest req, ServerCallContext ctx)
         {
-            return await _requestQueue.EnqueueRequestAsync(
-                request.DeviceId,
-                "GetDeviceStatus",
-                request,
-                async (req, ct) =>
-                {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到获取设备状态请求: Operator={Operator}",
-                        req.Operator);
-
-                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
-                        req.DeviceId, "getstatus", new Dictionary<string, object>(), ct);
-
-                    var response = new GetDeviceStatusResponse
-                    {
-                        Success = result.Success,
-                        Message = result.Message,
-                        ErrorCode = result.Success ? "0" : "1005",
-                        DeviceId = req.DeviceId
-                    };
-
-                    if (result.Success && result.ResultData != null)
-                    {
-                        response.DeviceStatus = new DeviceStatus
-                        {
-                            DeviceId = req.DeviceId,
-                            Online = result.ResultData.GetValueOrDefault("status").ToString() == "online",
-                            DoorStatus = "unknown", // 需要根据实际情况设置
-                            AlarmStatus = 0,
-                            LastHeartbeat = DateTimeOffset.Parse(
-                                result.ResultData.GetValueOrDefault("last_heartbeat", DateTime.Now.ToString()).ToString()!)
-                                .ToUnixTimeSeconds(),
-                            IpAddress = result.ResultData.GetValueOrDefault("device_ip", "未知").ToString()!
-                        };
-                    }
-
-                    return response;
-                },
-                context.CancellationToken);
+            var result = _deviceManager.Cms_SetConfigDevAsync(req.DeviceId, HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_GET_MODEL_ATTR, "UserAndRight", "SearchUserCount", "");
+            return Task.FromResult(new GetWhiteUserTotalResponse { Success = true, Message = "OK", ErrorCode = "0", DeviceId = req.DeviceId, TotalCount = 0 });
         }
 
-        public override async Task<SetDoorModeResponse> SetDoorMode(SetDoorModeRequest request, ServerCallContext context)
+        // 辅助方法：构建用户XML
+        private string BuildUserXml(Google.Protobuf.Collections.RepeatedField<UserInfo> users)
         {
-            return await _requestQueue.EnqueueRequestAsync(
-                request.DeviceId,
-                "SetDoorMode",
-                request,
-                async (req, ct) =>
-                {
-                    _deviceLogger.LogDeviceInfo(req.DeviceId, "收到设置门禁模式请求: Mode={Mode}, Operator={Operator}",
-                        req.Mode, req.Operator);
-
-                    var parameters = new Dictionary<string, object>
-                    {
-                        ["mode"] = req.Mode
-                    };
-
-                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
-                        req.DeviceId, "setdoormode", parameters, ct);
-
-                    return new SetDoorModeResponse
-                    {
-                        Success = result.Success,
-                        Message = result.Message,
-                        ErrorCode = result.Success ? "0" : "1006",
-                        DeviceId = req.DeviceId
-                    };
-                },
-                context.CancellationToken);
+            var xml = "<UserInfoList>";
+            foreach (var user in users)
+            {
+                xml += $"<UserInfo><userId>{user.UserId}</userId><name>{user.Name}</name><cardNumber>{user.CardNumber}</cardNumber></UserInfo>";
+            }
+            xml += "</UserInfoList>";
+            return xml;
         }
 
-        // 实现其他接口方法...
-        public override async Task<UpdateUserAllResponse> UpdateUserAll(UpdateUserAllRequest request, ServerCallContext context)
+        // 辅助方法：构建白名单XML
+        private string BuildWhiteListXml(Google.Protobuf.Collections.RepeatedField<WhiteUserInfo> users)
         {
-            return await _requestQueue.EnqueueRequestAsync(
-                request.DeviceId,
-                "UpdateUserAll",
-                request,
-                async (req, ct) =>
-                {
-                    var parameters = new Dictionary<string, object>
-                    {
-                        ["users"] = req.Users
-                    };
-
-                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
-                        req.DeviceId, "updateuserall", parameters, ct);
-
-                    return new UpdateUserAllResponse
-                    {
-                        Success = result.Success,
-                        Message = result.Message,
-                        ErrorCode = result.Success ? "0" : "1007",
-                        DeviceId = req.DeviceId,
-                        UpdatedCount = result.ResultData?.GetValueOrDefault("updated_count", 0).ToType<int>() ?? 0,
-                        TotalCount = result.ResultData?.GetValueOrDefault("total_count", req.Users.Count).ToType<int>() ?? req.Users.Count
-                    };
-                },
-                context.CancellationToken);
+            var xml = "<WhiteList>";
+            foreach (var user in users)
+            {
+                xml += $"<WhiteUser><customId>{user.CustomId}</customId><name>{user.Name}</name></WhiteUser>";
+            }
+            xml += "</WhiteList>";
+            return xml;
         }
 
-        public override async Task<GetUserListResponse> GetUserList(GetUserListRequest request, ServerCallContext context)
+        // 辅助方法：构建删除白名单XML
+        private string BuildDeleteWhiteXml(Google.Protobuf.Collections.RepeatedField<string> customIds)
         {
-            return await _requestQueue.EnqueueRequestAsync(
-                request.DeviceId,
-                "GetUserList",
-                request,
-                async (req, ct) =>
-                {
-                    var parameters = new Dictionary<string, object>
-                    {
-                        ["page_number"] = req.PageNumber,
-                        ["page_size"] = req.PageSize
-                    };
-
-                    var result = await _deviceManager.ExecuteDeviceCommandAsync(
-                        req.DeviceId, "getuserlist", parameters, ct);
-
-                    var response = new GetUserListResponse
-                    {
-                        Success = result.Success,
-                        Message = result.Message,
-                        ErrorCode = result.Success ? "0" : "1008",
-                        DeviceId = req.DeviceId,
-                        TotalCount = result.ResultData?.GetValueOrDefault("total_count", 0).ToType<int>() ?? 0
-                    };
-
-                    // 这里需要根据实际返回数据构建用户列表
-                    return response;
-                },
-                context.CancellationToken);
+            var xml = "<DeleteWhiteList>";
+            foreach (var id in customIds)
+            {
+                xml += $"<customId>{id}</customId>";
+            }
+            xml += "</DeleteWhiteList>";
+            return xml;
         }
 
-        // ... 继续实现其他方法
+        // 辅助方法：构建时段XML
+        private string BuildTimezoneXml(TimezoneGroup timezoneGroup)
+        {
+            var xml = $"<TimeZone><strategyId>{timezoneGroup.StrategyId}</strategyId><strategyName>{timezoneGroup.StrategyName}</strategyName></TimeZone>";
+            return xml;
+        }
     }
 }

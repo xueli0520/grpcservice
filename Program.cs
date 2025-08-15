@@ -29,16 +29,12 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {SourceContext}: {Message}{NewLine}{Exception}")
     .CreateLogger();
 
-builder.Host.UseSerilog(); 
+builder.Host.UseSerilog();
 
 builder.Services.Configure<GrpcServerConfiguration>(
     builder.Configuration.GetSection("GrpcServer"));
 builder.Services.Configure<HikDeviceConfiguration>(
     builder.Configuration.GetSection("HikDevice"));
-builder.Services.Configure<LibraryPathsConfiguration>(
-    builder.Configuration.GetSection("LibraryPaths"));
-
-// ע�����
 builder.Services.AddGrpc(options =>
 {
     var grpcConfig = builder.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
@@ -46,11 +42,11 @@ builder.Services.AddGrpc(options =>
     options.MaxSendMessageSize = grpcConfig?.MaxSendMessageSize ?? DefaultMaxSendMessageSize;
 });
 
-// עԶ
 builder.Services.AddSingleton<IDeviceLoggerService, DeviceLoggerService>();
 builder.Services.AddSingleton<IGrpcRequestQueueService, GrpcRequestQueueService>();
 builder.Services.AddSingleton<DeviceManager>();
 builder.Services.AddSingleton<CMSService>();
+builder.Services.AddSingleton<SubscribeEvent>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<CMSService>());
 
 builder.Services.AddHostedService(provider => provider.GetService<DeviceManager>()!);
@@ -63,67 +59,33 @@ builder.WebHost.ConfigureKestrel((context, serverOptions) =>
     var grpcConfig = context.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
     var host = grpcConfig?.Host ?? DefaultHost;
     var port = grpcConfig?.Port ?? DefaultGrpcPort;
-    var healthPort = port + 1;
 
-    // gRPC 端口：仅 HTTP/2（明文 h2c）
     serverOptions.Listen(System.Net.IPAddress.Parse(host), port, listenOptions =>
     {
         listenOptions.Protocols = HttpProtocols.Http2;
     });
-
-    // 健康检查端口：HTTP/1.1，便于浏览器/Invoke-WebRequest 访问
-    serverOptions.Listen(System.Net.IPAddress.Parse(host), healthPort, listenOptions =>
-    {
-        listenOptions.Protocols = HttpProtocols.Http1;
-    });
-
     serverOptions.Limits.MaxConcurrentConnections = grpcConfig?.MaxConcurrentCalls ?? DefaultMaxConcurrentCalls;
     serverOptions.Limits.MaxConcurrentUpgradedConnections = grpcConfig?.MaxConcurrentCalls ?? DefaultMaxConcurrentCalls;
 });
 
 var app = builder.Build();
 
-// мܵ
 app.UseRouting();
 
-// ע��gRPC����
 app.MapGrpcService<HkDeviceService>();
 
-// �������˵�
-app.MapGet("/health", async (DeviceManager deviceManager, IGrpcRequestQueueService queueService) =>
-{
-    var deviceStats = deviceManager.GetDeviceStatistics();
-    var queueStats = queueService.GetQueueStatistics();
-
-    return Results.Ok(new
-    {
-        status = "healthy",
-        timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-        device_statistics = deviceStats,
-        queue_statistics = queueStats,
-        memory_usage = GC.GetTotalMemory(false)
-    });
-});
-
-app.MapGet("/", () =>
-    "�����豸gRPC���������С�ʹ��gRPC�ͻ��˽���ͨ�š��������: /health");
-
-// ����Ӧ��
 try
 {
     Log.Information("正在启动海康设备gRPC服务...");
-
     var grpcConfig = app.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
     var host = grpcConfig?.Host ?? DefaultHost;
     var port = grpcConfig?.Port ?? DefaultGrpcPort;
     Log.Information("gRPC服务地址 (HTTP/2, 明文): {Host}:{Port}", host, port);
-    Log.Information("健康检查地址 (HTTP/1.1): {Host}:{Port}", host, port + 1);
-
     app.Run();
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Ӧʧ");
+    Log.Fatal(ex, "海康设备gRPC服务启动失败");
 }
 finally
 {

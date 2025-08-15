@@ -2,11 +2,19 @@
 
 package hk_device;
 
+import "google/protobuf/empty.proto"; 
+
 option go_package = "/proto";
 option csharp_namespace = "GrpcService";
 
+
 // 海康设备 gRPC 服务
 service HikDeviceService {
+  rpc SubscribeAllEvents(google.protobuf.Empty) returns (stream DeviceEvent);
+  //健康检查，获取服务器信息
+  rpc GetServerInfo(google.protobuf.Empty) returns (ServerInfoResponse);
+  //设备注册回调
+  rpc Register(RegisterRequest) returns (RegisterResponse);
   // 开门
   rpc OpenDoor(OpenDoorRequest) returns (OpenDoorResponse);
   
@@ -17,7 +25,10 @@ service HikDeviceService {
   rpc SyncTime(SyncTimeRequest) returns (SyncTimeResponse);
   
   // 获取设备信息
-  rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+
+  //获取设备人员数量
+  rpc GetUserTotal(GetUserTotalRequest) returns (GetUserTotalResponse);
   
   // 更新所有用户
   rpc UpdateUserAll(UpdateUserAllRequest) returns (UpdateUserAllResponse);
@@ -50,8 +61,44 @@ service HikDeviceService {
   // 获取白名单总数
   rpc GetWhiteUserTotal(GetWhiteUserTotalRequest) returns (GetWhiteUserTotalResponse);
   
-  // 获取设备版本
-  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+}
+
+message GetUserTotalRequest{
+  string device_id = 1;
+  string  message_id = 2;
+}
+
+message GetUserTotalResponse{ 
+  int32 total = 1;
+  string device_id = 2;
+}
+
+message RegisterRequest{
+	string device_id = 1;
+	string message_id = 2;
+}
+message RegisterResponse {
+	bool success = 1;
+	string device_id = 2;
+}
+
+message ServerInfoResponse {
+  string server_name = 1;
+  string version = 2;
+  int64  uptime_seconds = 3;
+  string status = 4;
+}
+
+// 订阅请求
+message SubscribeRequest {
+  string device_id = 1;
+  string operator = 2;
+  string message_id = 3;
+}
+message DeviceEvent {
+  string device_id = 2;
+  string event_type = 3;
+  string payload = 4; // JSON 或 XML，根据 SDK 回调内容
 }
 
 // 开门请求
