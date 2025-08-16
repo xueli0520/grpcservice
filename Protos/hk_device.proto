@@ -15,6 +15,9 @@ service HikDeviceService {
   rpc GetServerInfo(google.protobuf.Empty) returns (ServerInfoResponse);
   //设备注册回调
   rpc Register(RegisterRequest) returns (RegisterResponse);
+  
+  // 获取设备信息
+  rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
   // 开门
   rpc OpenDoor(OpenDoorRequest) returns (OpenDoorResponse);
   
@@ -24,7 +27,7 @@ service HikDeviceService {
   // 同步时间
   rpc SyncTime(SyncTimeRequest) returns (SyncTimeResponse);
   
-  // 获取设备信息
+  // 获取设备版本
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
 
   //获取设备人员数量
@@ -69,7 +72,7 @@ message GetUserTotalRequest{
 }
 
 message GetUserTotalResponse{ 
-  int32 total = 1;
+  int32 TotalCount = 1;
   string device_id = 2;
 }
 

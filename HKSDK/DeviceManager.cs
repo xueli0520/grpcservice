@@ -367,19 +367,19 @@ namespace GrpcService.HKSDK
             uint dwRequestUrlLen = (uint)url.Length;
             struParam.pRequestUrl = Marshal.StringToHGlobalAnsi(url);
             struParam.dwRequestUrlLen = dwRequestUrlLen;
-            Console.WriteLine("透传URL:" + url);
+            _logger.LogInformation("透传URL: {Url}", url);
 
             //输入XML/JSON报文, GET命令输入报文为空
-            if (inXml != "" || inXml != null)
+            if (!string.IsNullOrEmpty(inXml) || inXml != null)
             {
-                byte[] byInputParam = Encoding.UTF8.GetBytes(inXml);
+                byte[] byInputParam = Encoding.UTF8.GetBytes(inXml!);
                 int iXMLInputLen = byInputParam.Length;
 
                 struParam.pInBuffer = Marshal.AllocHGlobal(iXMLInputLen);
                 Marshal.Copy(byInputParam, 0, struParam.pInBuffer, iXMLInputLen);
                 struParam.dwInSize = (uint)byInputParam.Length;
 
-                Console.WriteLine("透传输入报文:" + inXml);
+                _logger.LogInformation("透传报文: {InXml}", inXml);
             }
 
             struParam.pOutBuffer = Marshal.AllocHGlobal(20 * 1024);    //输出缓冲区，如果接口调用失败提示错误码43，需要增大输出缓冲区
@@ -402,6 +402,7 @@ namespace GrpcService.HKSDK
             Marshal.FreeHGlobal(struParam.pCondBuffer);
             if (inXml != null) Marshal.FreeHGlobal(struParam.pInBuffer);
 
+            _logger.LogInformation("返回结果: {OutText}", outText);
             return Task.FromResult(map(true, outText));
         }
         public Task<(bool Success, string Message)> Cms_SetConfigDevAsync(string deviceId,

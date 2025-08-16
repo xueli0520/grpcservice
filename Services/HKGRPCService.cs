@@ -3,9 +3,8 @@ using Grpc.Core;
 using GrpcService.Common;
 using GrpcService.HKSDK;
 using GrpcService.Models;
-using System.Reflection.Metadata;
 using System.Text.Json;
-using System.Threading.Channels;
+using System.Xml.Serialization;
 
 namespace GrpcService.Services
 {
@@ -72,6 +71,34 @@ namespace GrpcService.Services
             _deviceManager.RegisterEvent(req.DeviceId);
             return Task.FromResult(new RegisterResponse { Success = true, DeviceId = req.DeviceId });
         }
+
+        public override Task<GetDeviceInfoResponse> GetDeviceInfo(GetDeviceInfoRequest req, ServerCallContext ctx)
+        {
+            var serializer = new XmlSerializer(typeof(GrpcDeviceInfo));
+            return _deviceManager.ExecuteIsapi(req.DeviceId, "GET /ISAPI/System/deviceInfo", "GET", "",
+            (ok, body) =>
+            {
+                GrpcDeviceInfo device;
+                using (var reader = new StringReader(body))
+                {
+                    device = (GrpcDeviceInfo)serializer.Deserialize(reader)!;
+                }
+                return new GetDeviceInfoResponse
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1000",
+                    DeviceInfo = new DeviceInfo
+                    {
+                        DeviceName = device.DeviceName,
+                        FirmwareVersion = device.FirmwareVersion
+                    },
+                    DeviceId = req.DeviceId
+                };
+            });
+        }
+
+
         /// <summary>
         /// 远程开门
         /// </summary>
@@ -225,12 +252,16 @@ namespace GrpcService.Services
             => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/System/deviceParameter", "PUT", null,
                 (ok, body) => new SyncDeviceParameterResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1016", DeviceId = req.DeviceId });
 
-        public override Task<GetWhiteUserTotalResponse> GetWhiteUserTotal(GetWhiteUserTotalRequest req, ServerCallContext ctx)
-        {
-            var result = _deviceManager.Cms_SetConfigDevAsync(req.DeviceId, HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_GET_MODEL_ATTR, "UserAndRight", "SearchUserCount", "");
-            return Task.FromResult(new GetWhiteUserTotalResponse { Success = true, Message = "OK", ErrorCode = "0", DeviceId = req.DeviceId, TotalCount = 0 });
-        }
-
+        public override Task<GetWhiteUserTotalResponse> GetWhiteUserTotal(GetWhiteUserTotalRequest req, ServerCallContext ctx) =>
+            _deviceManager.ExecuteIsapi(req.DeviceId, "GET /ISAPI/AccessControl/UserInfo/Count", "GET", null,
+                (ok, body) => new GetWhiteUserTotalResponse()
+                {
+                    Success = ok,
+                    Message = ok ? "OK" : body,
+                    ErrorCode = ok ? "0" : "1017",
+                    DeviceId = req.DeviceId,
+                    TotalCount = string.IsNullOrEmpty(body) ? 0 : JsonSerializer.Deserialize<GrpcUserInfo>(body)!.UserInfoCount!.userNumber
+                });
         // 辅助方法：构建用户XML
         private string BuildUserXml(Google.Protobuf.Collections.RepeatedField<UserInfo> users)
         {

@@ -1,4 +1,6 @@
 ﻿using GrpcService.HKSDK;
+using System.Text.Json.Serialization;
+using System.Xml.Serialization;
 
 namespace GrpcService.Models
 {
@@ -55,5 +57,68 @@ namespace GrpcService.Models
         public CancellationToken CancellationToken { get; set; }
         public string RequestType { get; set; } = "";
         public Func<TRequest, CancellationToken, Task<TResponse>> Handler { get; set; } = null!;
+    }
+    [XmlRoot("DeviceInfo", Namespace = "http://www.isapi.org/ver20/XMLSchema")]
+    public class GrpcDeviceInfo
+    {
+        [XmlElement("deviceName")]
+        public string? DeviceName { get; set; }
+        [XmlElement("deviceID")]
+        public string? DeviceID { get; set; }
+        [XmlElement("model")]
+        public string? Model { get; set; }
+        [XmlElement("serialNumber")]
+        public string? SerialNumber { get; set; }
+        [XmlElement("macAddress")]
+        public string? MacAddress { get; set; }
+        [XmlElement("firmwareVersion")]
+        public string? FirmwareVersion { get; set; }
+        [XmlElement("firmwareReleasedDate")]
+        public string? FirmwareReleasedDate { get; set; }
+        [XmlElement("encoderVersion")]
+        public string? EncoderVersion { get; set; }
+        [XmlElement("encoderReleasedDate")]
+        public string? EncoderReleasedDate { get; set; }
+        [XmlElement("hardwareVersion")]
+        public string? HardwareVersion { get; set; }
+        [XmlElement("deviceType")]
+        public string? DeviceType { get; set; }
+        [XmlElement("subDeviceType")]
+        public string? SubDeviceType { get; set; }
+        [XmlElement("localZoneNum")]
+        public string? LocalZoneNum { get; set; }
+        [XmlElement("alarmOutNum")]
+        public string? AlarmOutNum { get; set; }
+        [XmlElement("relayNum")]
+        public string? RelayNum { get; set; }
+        [XmlElement("electroLockNum")]
+        public string? ElectroLockNum { get; set; }
+        public string? RS485Num { get; set; }
+        [XmlElement("manufacturer")]
+        public string? Manufacturer { get; set; }
+        public string? OEMCode { get; set; }
+        [XmlElement("marketType")]
+        public string? MarketType { get; set; }
+        [XmlElement("dispalyNum")]
+        public string? DispalyNum { get; set; }
+        [XmlElement("bspVersion")]
+        public string? BspVersion { get; set; }
+        [XmlElement("dspVersion")]
+        public string? DspVersion { get; set; }
+        [XmlElement("productionDate")]
+        public string? ProductionDate { get; set; }
+    }
+
+    public class GrpcUserInfo
+    {
+        public UserInfoCount? UserInfoCount { get; set; } = new UserInfoCount();
+    }
+
+    public class UserInfoCount
+    {
+        public int userNumber { get; set; }
+        public int bindFaceUserNumber { get; set; }
+        public int bindFingerprintUserNumber { get; set; }
+        public int bindCardUserNumber { get; set; }
     }
 }
