@@ -368,7 +368,6 @@ namespace GrpcService.HKSDK
             struParam.pRequestUrl = Marshal.StringToHGlobalAnsi(url);
             struParam.dwRequestUrlLen = dwRequestUrlLen;
             _logger.LogInformation("透传URL: {Url}", url);
-
             //输入XML/JSON报文, GET命令输入报文为空
             if (!string.IsNullOrEmpty(inXml) || inXml != null)
             {

@@ -157,90 +157,199 @@ namespace GrpcService.Services
             => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/DoorMode", "PUT",
                 $"<DoorMode><mode>{req.Mode}</mode></DoorMode>",
                 (ok, body) => new SetDoorModeResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1006", DeviceId = req.DeviceId });
-        public override Task<UpdateUserAllResponse> UpdateUserAll(UpdateUserAllRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/UserInfo/Record", "PUT",
-                BuildUserXml(req.Users),
-                (ok, body) => new UpdateUserAllResponse
-                {
-                    Success = ok,
-                    Message = ok ? "OK" : body,
-                    ErrorCode = ok ? "0" : "1007",
-                    DeviceId = req.DeviceId,
-                    UpdatedCount = ok ? req.Users.Count : 0,
-                    TotalCount = req.Users.Count
-                });
-
-        public override Task<GetUserListResponse> GetUserList(GetUserListRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, $"/ISAPI/AccessControl/UserInfo/Record?pageNo={req.PageNumber}&pageSize={req.PageSize}", "GET", null,
-                (ok, body) => new GetUserListResponse
-                {
-                    Success = ok,
-                    Message = ok ? "OK" : body,
-                    ErrorCode = ok ? "0" : "1008",
-                    DeviceId = req.DeviceId,
-                    TotalCount = 0
-                });
 
         public override Task<UpdateWhiteResponse> UpdateWhite(UpdateWhiteRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/WhiteList/Record", "PUT",
-                BuildWhiteListXml(req.Users),
-                (ok, body) => new UpdateWhiteResponse
+        {
+            OperationResponse whiteResult = new();
+            //1.先添加人员
+            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserInfo/SetUp", "PUT", JsonSerializer.Serialize(new SetUpPersonRequest
+            {
+                UserInfo = new UserInfo
                 {
-                    Success = ok,
-                    Message = ok ? "OK" : body,
-                    ErrorCode = ok ? "0" : "1009",
+                    EmployeeNo = req.Users.EmployeeNo,
+                    Name = req.Users.Name,
+                    Password = req.Users.DevPassword,
+                    UserType = req.Users.UserType,
+                    Valid = new ValidInfo
+                    {
+                        BeginTime = req.Users.StartOn,
+                        EndTime = req.Users.EndOn,
+                        Enable = true
+                    },
+                }
+            }),
+               (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!
+                   );
+            if (whiteResult.StatusCode != 1)
+            {
+                return Task.FromResult(new UpdateWhiteResponse
+                {
+                    Success = false,
+                    Message = whiteResult.ErrorMsg,
+                    ErrorCode = whiteResult.ErrorCode.ToString(),
                     DeviceId = req.DeviceId,
-                    UpdatedCount = ok ? req.Users.Count : 0,
-                    TotalCount = req.Users.Count
+                    Users = req.Users
                 });
-
-        public override Task<DeleteWhiteResponse> DeleteWhite(DeleteWhiteRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/WhiteList/Record", "DELETE",
-                BuildDeleteWhiteXml(req.CustomIds),
-                (ok, body) => new DeleteWhiteResponse
+            }
+            //2.添加人脸    
+            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/Intelligent/FDLib/FDSetUp", "PUT", JsonSerializer.Serialize(new FaceInfoRequest
+            {
+                FaceURL = req.Users.PicPath,
+                FaceLibType = "blackFD",
+                FDID = req.Users.EmployeeNo,
+                FPID = req.Users.EmployeeNo,
+                FaceType = "normalFace",
+                SaveFacePic = true
+            }),
+               (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!
+                   );
+            if (whiteResult.StatusCode != 1)
+            {
+                return Task.FromResult(new UpdateWhiteResponse
                 {
-                    Success = ok,
-                    Message = ok ? "OK" : body,
-                    ErrorCode = ok ? "0" : "1010",
+                    Success = false,
+                    Message = whiteResult.ErrorMsg,
+                    ErrorCode = whiteResult.ErrorCode.ToString(),
                     DeviceId = req.DeviceId,
-                    DeletedCount = ok ? req.CustomIds.Count : 0,
+                    Users = req.Users
+                });
+            }
+            //3.添加卡号
+            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/CardInfo/SetUp", "PUT", JsonSerializer.Serialize(new CardInfoRequest
+            {
+                CardInfo = new CardInfo
+                {
+                    CardNo = req.Users.CardNumber,
+                    EmployeeNo = req.Users.EmployeeNo,
+                    CardType = "normalCard",
+                    CheckEmployeeNo = true,
+                    CheckCardNo = true
+                }
+            }),
+               (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!
+                   );
+            return Task.FromResult(new UpdateWhiteResponse
+            {
+                Success = whiteResult.StatusCode == 1,
+                Message = whiteResult.ErrorMsg,
+                ErrorCode = whiteResult.ErrorCode.ToString(),
+                DeviceId = req.DeviceId,
+                Users = req.Users
+            });
+        }
+
+        public override async Task<DeleteWhiteResponse> DeleteWhite(DeleteWhiteRequest req, ServerCallContext ctx)
+        {
+            // 1. 先发起删除请求
+            OperationResponse deleteResult = new();
+            await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserInfoDetail/Delete", "PUT", JsonSerializer.Serialize(
+                 new DeletaUserRequest
+                 {
+                     UserInfoDetail = new UserInfoDetailRequest
+                     {
+                         Mode = "byEmployeeNo",
+                         EmployeeNoList = [.. req.CustomIds.Select(id => new EmployeeNoList { EmployeeNo = id })]
+                     }
+                 }),
+                 (ok, body) => deleteResult = JsonSerializer.Deserialize<OperationResponse>(body)!);
+
+            // 2. 如果设备没返回成功，直接结束
+            if (deleteResult.StatusCode != 1)
+            {
+                return new DeleteWhiteResponse
+                {
+                    Success = false,
+                    Message = deleteResult.ErrorMsg,
+                    ErrorCode = deleteResult.ErrorCode.ToString(),
+                    DeviceId = req.DeviceId,
+                    DeletedCount = 0,
                     TotalCount = req.CustomIds.Count
-                });
+                };
+            }
 
+            // 3. 循环检查 DeleteProcess，直到返回 success
+            var deleteProcessResult = new ProcessDeleteResponse();
+            while (true)
+            {
+                await _deviceManager.ExecuteIsapi(req.DeviceId,
+                      "GET /ISAPI/AccessControl/UserInfoDetail/DeleteProcess",
+                      "GET",
+                      null,
+                      (ok, body) => deleteProcessResult = JsonSerializer.Deserialize<ProcessDeleteResponse>(body)!);
+
+                if (deleteProcessResult?.UserInfoDetailDeleteProcess?.Status == "success")
+                {
+                    break;
+                }
+                // 延迟 1s 再重试，避免打爆设备
+                await Task.Delay(1000);
+            }
+
+            // 4. 返回最终结果
+            return new DeleteWhiteResponse
+            {
+                Success = true,
+                Message = "删除成功",
+                ErrorCode = "0",
+                DeviceId = req.DeviceId,
+                DeletedCount = req.CustomIds.Count,
+                TotalCount = req.CustomIds.Count
+            };
+        }
         public override Task<PageWhiteResponse> PageWhite(PageWhiteRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, $"/ISAPI/AccessControl/WhiteList/Record?beginNo={req.BeginNo}&pageSize={req.PageSize}", "GET", null,
-                (ok, body) => new PageWhiteResponse
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "POST /ISAPI/AccessControl/UserInfo/Search", "POST", JsonSerializer.Serialize(new UserInfoSearchCond
+            {
+                SearchID = req.MessageId,
+                SearchResultPosition = req.BeginNo,
+                MaxResults = req.PageSize
+            }),
+                (ok, body) =>
                 {
-                    Success = ok,
-                    Message = ok ? "OK" : body,
-                    ErrorCode = ok ? "0" : "1011",
-                    DeviceId = req.DeviceId,
-                    TotalCount = 0
-                });
+                    var result = new PageWhiteResponse
+                    {
+                        Success = ok,
+                        Message = ok ? "OK" : body,
+                        ErrorCode = ok ? "0" : "1011",
+                        DeviceId = req.DeviceId
+                    };
+                    if (ok)
+                    {
+                        var userList = JsonSerializer.Deserialize<SdkWhiteResponse>(body)!.UserInfoSearch.UserInfo;
+                        if (userList == null) return result;
+                        foreach (var user in userList)
+                        {
+                            CardInfoSearch? cardInfo = null;
+                            _deviceManager.ExecuteIsapi(req.DeviceId, "POST /ISAPI/AccessControl/UserInfo/Search", "POST", JsonSerializer.Serialize(new UserInfoSearchCond
+                            {
+                                SearchID = req.MessageId,
+                                SearchResultPosition = 0,
+                                MaxResults = 10,
+                                EmployeeNoList = [new() { EmployeeNo = user.EmployeeNo }]
+                            }),
+                (ok, body) => cardInfo = JsonSerializer.Deserialize<CardInfoSearch>(body)!);
+                            result.Users.Add(new WhiteUserInfo
+                            {
+                                EmployeeNo = user.EmployeeNo,
+                                Name = user.Name,
+                                DevPassword = user.Password,
+                                StartOn = user.Valid?.BeginTime,
+                                EndOn = user.Valid?.EndTime,
+                                PicPath = user.FaceURL,
+                                CardNumber = cardInfo?.CardInfo?.Count > 0 ? cardInfo.CardInfo[0].CardNo : ""
+                            });
+                        }
 
-        public override Task<DetailWhiteResponse> DetailWhite(DetailWhiteRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, $"/ISAPI/AccessControl/WhiteList/Record?code={req.Code}", "GET", null,
-                (ok, body) => new DetailWhiteResponse
-                {
-                    Success = ok,
-                    Message = ok ? "OK" : body,
-                    ErrorCode = ok ? "0" : "1012",
-                    DeviceId = req.DeviceId
+                    }
+                    return result;
                 });
 
         public override Task<UpdateTimezoneResponse> UpdateTimezone(UpdateTimezoneRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/TimeZone", "PUT",
-                BuildTimezoneXml(req.TimezoneGroup),
-                (ok, body) => new UpdateTimezoneResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1013", DeviceId = req.DeviceId });
-
-        public override Task<QueryTimezoneResponse> QueryTimezone(QueryTimezoneRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/TimeZone", "GET", null,
-                (ok, body) => new QueryTimezoneResponse
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserRightWeekPlanCfg/1?format=json", "PUT",
+               JsonSerializer.Serialize(req.TimezoneGroup),
+                (ok, body) =>
                 {
-                    Success = ok,
-                    Message = ok ? "OK" : body,
-                    ErrorCode = ok ? "0" : "1014",
-                    DeviceId = req.DeviceId
+                    var response = JsonSerializer.Deserialize<OperationResponse>(body)!;
+                    return new UpdateTimezoneResponse { Success = response.StatusCode == 1, Message = response.StatusString, ErrorCode = response.ErrorMsg, DeviceId = req.DeviceId };
                 });
 
         public override Task<DoorTemplateResponse> SetDoorTemplate(DoorTemplateRequest req, ServerCallContext ctx)
@@ -260,49 +369,8 @@ namespace GrpcService.Services
                     Message = ok ? "OK" : body,
                     ErrorCode = ok ? "0" : "1017",
                     DeviceId = req.DeviceId,
-                    TotalCount = string.IsNullOrEmpty(body) ? 0 : JsonSerializer.Deserialize<GrpcUserInfo>(body)!.UserInfoCount!.userNumber
+                    TotalCount = string.IsNullOrEmpty(body) ? 0 : JsonSerializer.Deserialize<GrpcUserInfo>(body)!.UserInfoCount!.UserNumber
                 });
-        // 辅助方法：构建用户XML
-        private string BuildUserXml(Google.Protobuf.Collections.RepeatedField<UserInfo> users)
-        {
-            var xml = "<UserInfoList>";
-            foreach (var user in users)
-            {
-                xml += $"<UserInfo><userId>{user.UserId}</userId><name>{user.Name}</name><cardNumber>{user.CardNumber}</cardNumber></UserInfo>";
-            }
-            xml += "</UserInfoList>";
-            return xml;
-        }
 
-        // 辅助方法：构建白名单XML
-        private string BuildWhiteListXml(Google.Protobuf.Collections.RepeatedField<WhiteUserInfo> users)
-        {
-            var xml = "<WhiteList>";
-            foreach (var user in users)
-            {
-                xml += $"<WhiteUser><customId>{user.CustomId}</customId><name>{user.Name}</name></WhiteUser>";
-            }
-            xml += "</WhiteList>";
-            return xml;
-        }
-
-        // 辅助方法：构建删除白名单XML
-        private string BuildDeleteWhiteXml(Google.Protobuf.Collections.RepeatedField<string> customIds)
-        {
-            var xml = "<DeleteWhiteList>";
-            foreach (var id in customIds)
-            {
-                xml += $"<customId>{id}</customId>";
-            }
-            xml += "</DeleteWhiteList>";
-            return xml;
-        }
-
-        // 辅助方法：构建时段XML
-        private string BuildTimezoneXml(TimezoneGroup timezoneGroup)
-        {
-            var xml = $"<TimeZone><strategyId>{timezoneGroup.StrategyId}</strategyId><strategyName>{timezoneGroup.StrategyName}</strategyName></TimeZone>";
-            return xml;
-        }
     }
 }

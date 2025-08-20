@@ -11,59 +11,36 @@ option csharp_namespace = "GrpcService";
 // 海康设备 gRPC 服务
 service HikDeviceService {
   rpc SubscribeAllEvents(google.protobuf.Empty) returns (stream DeviceEvent);
-  //健康检查，获取服务器信息
+  //健康检查，获取服务器信息（完成）
   rpc GetServerInfo(google.protobuf.Empty) returns (ServerInfoResponse);
-  //设备注册回调
+  //设备注册回调（完成）
   rpc Register(RegisterRequest) returns (RegisterResponse);
-  
-  // 获取设备信息
+  // 获取设备信息（完成）
   rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
-  // 开门
+  // 开门（完成）
   rpc OpenDoor(OpenDoorRequest) returns (OpenDoorResponse);
-  
-  // 重启设备
+  // 重启设备（完成）
   rpc Reboot(RebootRequest) returns (RebootResponse);
-  
-  // 同步时间
+  // 同步时间（完成）
   rpc SyncTime(SyncTimeRequest) returns (SyncTimeResponse);
-  
-  // 获取设备版本
+  // 获取设备版本（完成）
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
-
-  //获取设备人员数量
-  rpc GetUserTotal(GetUserTotalRequest) returns (GetUserTotalResponse);
-  
-  // 更新所有用户
-  rpc UpdateUserAll(UpdateUserAllRequest) returns (UpdateUserAllResponse);
-  
-  // 获取用户列表
-  rpc GetUserList(GetUserListRequest) returns (GetUserListResponse);
-  
   // 设置门禁模式
   rpc SetDoorMode(SetDoorModeRequest) returns (SetDoorModeResponse);
-  
   // 获取设备状态
   rpc GetDeviceStatus(GetDeviceStatusRequest) returns (GetDeviceStatusResponse);
-  
   // 人员管理相关
   rpc UpdateWhite(UpdateWhiteRequest) returns (UpdateWhiteResponse);
   rpc DeleteWhite(DeleteWhiteRequest) returns (DeleteWhiteResponse);
   rpc PageWhite(PageWhiteRequest) returns (PageWhiteResponse);
-  rpc DetailWhite(DetailWhiteRequest) returns (DetailWhiteResponse);
-  
   // 时段管理相关
   rpc UpdateTimezone(UpdateTimezoneRequest) returns (UpdateTimezoneResponse);
-  rpc QueryTimezone(QueryTimezoneRequest) returns (QueryTimezoneResponse);
-  
   // 门禁模板相关
   rpc SetDoorTemplate(DoorTemplateRequest) returns (DoorTemplateResponse);
-  
   // 设备参数同步
   rpc SyncDeviceParameter(SyncDeviceParameterRequest) returns (SyncDeviceParameterResponse);
-  
-  // 获取白名单总数
+  // 获取白名单总数（完成）
   rpc GetWhiteUserTotal(GetWhiteUserTotalRequest) returns (GetWhiteUserTotalResponse);
-  
 }
 
 message GetUserTotalRequest{
@@ -177,53 +154,6 @@ message DeviceInfo {
   int64 last_online_time = 7;
 }
 
-// 更新所有用户请求
-message UpdateUserAllRequest {
-  string device_id = 1;
-  string operator = 2;
-  string message_id = 3;
-  repeated UserInfo users = 4;
-}
-
-// 用户信息
-message UserInfo {
-  string user_id = 1;
-  string name = 2;
-  string card_number = 3;
-  int32 user_type = 4;  // 0: 白名单, 1: 黑名单
-  int64 valid_start_time = 5;
-  int64 valid_end_time = 6;
-}
-
-// 更新所有用户响应
-message UpdateUserAllResponse {
-  bool success = 1;
-  string message = 2;
-  string error_code = 3;
-  int32 updated_count = 4;
-  int32 total_count = 5;
-  string device_id = 6;
-}
-
-// 获取用户列表请求
-message GetUserListRequest {
-  string device_id = 1;
-  string operator = 2;
-  string message_id = 3;
-  int32 page_number = 4;
-  int32 page_size = 5;
-}
-
-// 获取用户列表响应
-message GetUserListResponse {
-  bool success = 1;
-  string message = 2;
-  string error_code = 3;
-  repeated UserInfo users = 4;
-  int32 total_count = 5;
-  string device_id = 6;
-}
-
 // 设置门禁模式请求
 message SetDoorModeRequest {
   string device_id = 1;
@@ -271,7 +201,7 @@ message UpdateWhiteRequest {
   string device_id = 1;
   string operator = 2;
   string message_id = 3;
-  repeated WhiteUserInfo users = 4;
+  WhiteUserInfo users = 4;
   int32 person_num = 5;
   string data_begin = 6;
   string data_end = 7;
@@ -279,57 +209,24 @@ message UpdateWhiteRequest {
 
 // 白名单用户信息
 message WhiteUserInfo {
-  string custom_id = 1;
-  string name = 2;
-  int32 person_type = 3;
-  int32 temp_card_type = 4;
-  string card_valid_begin = 5;
-  string card_valid_end = 6;
-  int32 effect_number = 7;
-  int32 nation = 8;
-  int32 gender = 9;
-  string id_card = 10;
-  string birthday = 11;
-  string telnum1 = 12;
-  string native = 13;
-  string address = 14;
-  string notes = 15;
-  int32 card_type = 16;
-  int32 card_type2 = 17;
-  uint32 card_mode = 18;
-  int32 wiegand_type = 19;
-  string card_num2 = 20;
-  int32 wg_facility_code = 21;
-  uint32 rf_card_mode = 22;
-  string rfid_card = 23;
-  string pic = 24;
-  string pic_uri = 25;
-  int32 is_check_similarity = 26;
-  string personal_password = 27;
-  StrategyInfo strategy_info = 28;
+	string employeeNo=1;
+	string name=2;
+	string cardNumber=3;
+	string userType=4;
+	string startOn=5;
+	string endOn=6;
+	string gender=7;
+	string devPassword=8;	
+	string carNumber=9;
+	string picPath=10;
 }
-
-// 策略信息
-message StrategyInfo {
-  int32 strategy_num = 1;
-  repeated StrategyData strategy_data = 2;
-
-}
-
-// 策略数据
-message StrategyData {
-  string strategy_id = 1;
-  string strategy_name = 2;
-}
-
 // 更新白名单响应
 message UpdateWhiteResponse {
   bool success = 1;
   string message = 2;
   string error_code = 3;
-  int32 updated_count = 4;
-  int32 total_count = 5;
   string device_id = 6;
+ WhiteUserInfo users = 7;
 }
 
 // 删除白名单请求
@@ -339,8 +236,6 @@ message DeleteWhiteRequest {
   string message_id = 3;
   repeated string custom_ids = 4;
   int32 person_num = 5;
-  string data_begin = 6;
-  string data_end = 7;
 }
 
 // 删除白名单响应
@@ -372,23 +267,6 @@ message PageWhiteResponse {
   string device_id = 6;
 }
 
-// 获取白名单详情请求
-message DetailWhiteRequest {
-  string device_id = 1;
-  string operator = 2;
-  string message_id = 3;
-  string code = 4;
-}
-
-// 获取白名单详情响应
-message DetailWhiteResponse {
-  bool success = 1;
-  string message = 2;
-  string error_code = 3;
-  WhiteUserInfo user = 4;
-  string device_id = 5;
-}
-
 // 更新时段请求
 message UpdateTimezoneRequest {
   string device_id = 1;
@@ -396,60 +274,32 @@ message UpdateTimezoneRequest {
   string message_id = 3;
   TimezoneGroup timezone_group = 4;
 }
-
-// 时段组
 message TimezoneGroup {
-  int32 strategy_id = 1;
-  string strategy_name = 2;
-  int32 access_num_limit = 3;
-  string start_date = 4;
-  string end_date = 5;
-  int32 allow_cnt = 6;
-  repeated TimezoneTime monday = 7;
-  repeated TimezoneTime tuesday = 8;
-  repeated TimezoneTime wednesday = 9;
-  repeated TimezoneTime thursday = 10;
-  repeated TimezoneTime friday = 11;
-  repeated TimezoneTime saturday = 12;
-  repeated TimezoneTime sunday = 13;
-  repeated HolidayInfo holiday_info = 14;
+  UserRightWeekPlanCfg user_right_week_plan_cfg = 1; 
 }
 
-// 时段时间
-message TimezoneTime {
-  string start_time = 1;
+message UserRightWeekPlanCfg {
+  bool enable = 1;
+  repeated WeekPlanCfg week_plan_cfg = 2;
+}
+
+message WeekPlanCfg {
+  string week = 1;
+  int32 id = 2;
+  bool enable = 3;
+  TimeSegment time_segment = 4;
+}
+
+message TimeSegment {
+  string begin_time = 1;
   string end_time = 2;
 }
-
-// 假日信息
-message HolidayInfo {
-  string holiday_start_date = 1;
-  string holiday_end_date = 2;
-  repeated TimezoneTime holiday_period = 3;
-}
-
 // 更新时段响应
 message UpdateTimezoneResponse {
   bool success = 1;
   string message = 2;
   string error_code = 3;
   string device_id = 4;
-}
-
-// 查询时段请求
-message QueryTimezoneRequest {
-  string device_id = 1;
-  string operator = 2;
-  string message_id = 3;
-}
-
-// 查询时段响应
-message QueryTimezoneResponse {
-  bool success = 1;
-  string message = 2;
-  string error_code = 3;
-  repeated TimezoneGroup timezone_groups = 4;
-  string device_id = 5;
 }
 
 // 门禁模板请求
