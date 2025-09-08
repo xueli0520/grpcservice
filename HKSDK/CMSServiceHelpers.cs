@@ -45,7 +45,7 @@ namespace GrpcService.HKSDK
                     Marshal.Copy(byInputParam, 0, inBufferPtr, iXMLInputLen);
                     struParam.pInBuffer = inBufferPtr;
                     struParam.dwInSize = (uint)byInputParam.Length;
-                    logger?.LogDebug("透传输入报文: {Input}", inputStr.Length > 500 ? inputStr.Substring(0, 500) + "..." : inputStr);
+                    logger?.LogDebug("透传输入报文: {Input}", inputStr.Length > 500 ? string.Concat(inputStr.AsSpan(0, 500), "...") : inputStr);
                 }
 
                 outBufferPtr = Marshal.AllocHGlobal(20 * 1024);

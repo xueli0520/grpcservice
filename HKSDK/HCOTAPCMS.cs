@@ -403,6 +403,11 @@ namespace GrpcService.HKSDK
         // EN: Device offline callback
         public const int ENUM_OTAP_CMS_DEV_OFF = 1;
 
+        /// <summary>
+        /// 配置数据收发参数配置(如接收超时时间). 
+        /// </summary>
+        public const int ENUM_OTAP_CMS_SEND_RECV_PARAM = 1;
+
         // CN: 设备ping请求回调
         public const int ENUM_OTAP_CMS_DEV_DAS_PINGREQ_CALLBACK = 3;
 
@@ -1336,8 +1341,12 @@ namespace GrpcService.HKSDK
         //    unsigned int dwAMSTimeOutCount;
         //}
         //OTAP_CMS_SERVER_INFO;
-
-
+        //超时时间
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct OTAP_CMS_SEND_RECV_PARAM
+        {
+            public uint dwRecvTimeOut;
+        }
 
         public HCOTAPCMS() { }
     }

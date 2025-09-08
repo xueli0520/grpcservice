@@ -162,7 +162,7 @@ namespace GrpcService.Services
         {
             OperationResponse whiteResult = new();
             //1.先添加人员
-            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserInfo/SetUp", "PUT", JsonSerializer.Serialize(new SetUpPersonRequest
+            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserInfo/SetUp?format=json", "PUT", JsonSerializer.Serialize(new SetUpPersonRequest
             {
                 UserInfo = new UserInfo
                 {
@@ -192,7 +192,7 @@ namespace GrpcService.Services
                 });
             }
             //2.添加人脸    
-            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/Intelligent/FDLib/FDSetUp", "PUT", JsonSerializer.Serialize(new FaceInfoRequest
+            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/Intelligent/FDLib/FDSetUp?format=json", "PUT", JsonSerializer.Serialize(new FaceInfoRequest
             {
                 FaceURL = req.Users.PicPath,
                 FaceLibType = "blackFD",
@@ -215,7 +215,7 @@ namespace GrpcService.Services
                 });
             }
             //3.添加卡号
-            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/CardInfo/SetUp", "PUT", JsonSerializer.Serialize(new CardInfoRequest
+            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/CardInfo/SetUp?format=json", "PUT", JsonSerializer.Serialize(new CardInfoRequest
             {
                 CardInfo = new CardInfo
                 {
@@ -242,7 +242,7 @@ namespace GrpcService.Services
         {
             // 1. 先发起删除请求
             OperationResponse deleteResult = new();
-            await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserInfoDetail/Delete", "PUT", JsonSerializer.Serialize(
+            await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserInfoDetail/Delete?format=json", "PUT", JsonSerializer.Serialize(
                  new DeletaUserRequest
                  {
                      UserInfoDetail = new UserInfoDetailRequest
@@ -272,7 +272,7 @@ namespace GrpcService.Services
             while (true)
             {
                 await _deviceManager.ExecuteIsapi(req.DeviceId,
-                      "GET /ISAPI/AccessControl/UserInfoDetail/DeleteProcess",
+                      "GET /ISAPI/AccessControl/UserInfoDetail/DeleteProcess?format=json",
                       "GET",
                       null,
                       (ok, body) => deleteProcessResult = JsonSerializer.Deserialize<ProcessDeleteResponse>(body)!);
@@ -297,7 +297,7 @@ namespace GrpcService.Services
             };
         }
         public override Task<PageWhiteResponse> PageWhite(PageWhiteRequest req, ServerCallContext ctx)
-            => _deviceManager.ExecuteIsapi(req.DeviceId, "POST /ISAPI/AccessControl/UserInfo/Search", "POST", JsonSerializer.Serialize(new UserInfoSearchCond
+            => _deviceManager.ExecuteIsapi(req.DeviceId, "POST /ISAPI/AccessControl/UserInfo/Search?format=json", "POST", JsonSerializer.Serialize(new UserInfoSearchCond
             {
                 SearchID = req.MessageId,
                 SearchResultPosition = req.BeginNo,
@@ -319,7 +319,7 @@ namespace GrpcService.Services
                         foreach (var user in userList)
                         {
                             CardInfoSearch? cardInfo = null;
-                            _deviceManager.ExecuteIsapi(req.DeviceId, "POST /ISAPI/AccessControl/UserInfo/Search", "POST", JsonSerializer.Serialize(new UserInfoSearchCond
+                            _deviceManager.ExecuteIsapi(req.DeviceId, "POST /ISAPI/AccessControl/UserInfo/Search?format=json", "POST", JsonSerializer.Serialize(new UserInfoSearchCond
                             {
                                 SearchID = req.MessageId,
                                 SearchResultPosition = 0,
@@ -362,7 +362,7 @@ namespace GrpcService.Services
                 (ok, body) => new SyncDeviceParameterResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1016", DeviceId = req.DeviceId });
 
         public override Task<GetWhiteUserTotalResponse> GetWhiteUserTotal(GetWhiteUserTotalRequest req, ServerCallContext ctx) =>
-            _deviceManager.ExecuteIsapi(req.DeviceId, "GET /ISAPI/AccessControl/UserInfo/Count", "GET", null,
+            _deviceManager.ExecuteIsapi(req.DeviceId, "GET /ISAPI/AccessControl/UserInfo/Count?format=json", "GET", null,
                 (ok, body) => new GetWhiteUserTotalResponse()
                 {
                     Success = ok,

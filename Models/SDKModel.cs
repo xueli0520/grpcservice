@@ -79,6 +79,10 @@ namespace GrpcService.Models
     /// <summary>
     /// 海康sdk查询用户请求
     /// </summary>
+    public class UserInfoSearchRequest
+    {
+        public UserInfoSearchCond? UserInfoSearchCond { get; set; }
+    }
     public class UserInfoSearchCond
     {
         /// <summary>
@@ -105,15 +109,17 @@ namespace GrpcService.Models
         /// 说明：
         /// - 如值大于设备能力集范围，则按能力集最大值返回，不报错
         /// 类型：int
-        /// </summary>
-        public int MaxResults { get; set; }
+        /// </summary>    
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? MaxResults { get; set; }
 
         /// <summary>
         /// 【可选】人员ID列表
         /// 说明：
         /// - 当字段不存在或为空时，查询所有用户
         /// 子类型：object数组
-        /// </summary>
+        /// </summary> 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<EmployeeNoList>? EmployeeNoList { get; set; }
 
         /// <summary>
@@ -123,18 +129,21 @@ namespace GrpcService.Models
         /// - 敏感信息需加密
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? FuzzySearch { get; set; }
 
         /// <summary>
         /// 【可选】考勤组织编号范围
         /// 子类型：int数组
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<int>? GroupIdList { get; set; }
 
         /// <summary>
         /// 【可选】考勤组织名称范围
         /// 子类型：string数组
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<string>? GroupNameList { get; set; }
 
         /// <summary>
@@ -147,6 +156,7 @@ namespace GrpcService.Models
         /// 说明：存在时表示查询对应排班状态的人
         /// 子类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? ArrangeType { get; set; }
 
         /// <summary>
@@ -161,6 +171,7 @@ namespace GrpcService.Models
         /// - ...（custom2-custom5）
         /// 子类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? UserType { get; set; }
 
         /// <summary>
@@ -168,6 +179,7 @@ namespace GrpcService.Models
         /// 说明：要查询的设备编号(床位)列表
         /// 子类型：int数组
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<int>? DeviceIDList { get; set; }
 
         /* 以下为生物特征标识字段（全部可选）*/
@@ -176,36 +188,42 @@ namespace GrpcService.Models
         /// 是否已录入人脸
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasFace { get; set; }
 
         /// <summary>
         /// 是否已录入卡
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasCard { get; set; }
 
         /// <summary>
         /// 是否已录入指纹
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasFingerprint { get; set; }
 
         /// <summary>
         /// 是否已录入虹膜
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasIris { get; set; }
 
         /// <summary>
         /// 是否已录入声纹
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasVoiceprint { get; set; }
 
         /// <summary>
         /// 是否已录入身份证
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasIDCard { get; set; }
 
         /// <summary>
@@ -213,18 +231,21 @@ namespace GrpcService.Models
         /// 说明：当设备处于采集模式时，用于区分采集名单中人员是否已完成采集
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasCollection { get; set; }
 
         /// <summary>
         /// 是否已录入遥控器
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasRemoteControl { get; set; }
 
         /// <summary>
         /// 是否已录入掌纹掌静脉
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HasPPAndPV { get; set; }
 
         /// <summary>
@@ -234,6 +255,7 @@ namespace GrpcService.Models
         /// - DepartmentManager#部门主管
         /// 子类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? UserLevel { get; set; }
 
         /// <summary>
@@ -244,6 +266,7 @@ namespace GrpcService.Models
         /// - 长度范围：[1,32]
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? MeetingID { get; set; }
 
         /// <summary>
@@ -258,6 +281,7 @@ namespace GrpcService.Models
         /// 3. 若查询数量大于实际数据量，自动补充下一字母数据
         /// 子类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? SortByNameFlag { get; set; }
 
         /// <summary>
@@ -268,6 +292,7 @@ namespace GrpcService.Models
         ///    数量相同时按添加到设备的顺序排序（先添加的靠前）
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? SortByBoxNumFlag { get; set; }
 
         /// <summary>
@@ -277,6 +302,7 @@ namespace GrpcService.Models
         /// - false: 查询未关联人员组织的人员
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IsLinkageUserGroup { get; set; }
 
         /// <summary>
@@ -287,6 +313,7 @@ namespace GrpcService.Models
         /// 依赖条件：当IsLinkageUserGroup为true时必须提供
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? UserGroupNodeID { get; set; }
 
         /// <summary>
@@ -295,6 +322,7 @@ namespace GrpcService.Models
         /// - 默认值：true
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IsDisplaySubGroupNode { get; set; }
 
         /// <summary>
@@ -304,6 +332,7 @@ namespace GrpcService.Models
         /// - 范围：[1,32]
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? GroupID { get; set; }
 
         /// <summary>
@@ -312,12 +341,14 @@ namespace GrpcService.Models
         /// - 长度范围：[1,9]
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? RemoteControlNo { get; set; }
 
         /// <summary>
         /// 【可选】区域权限组关联标识
         /// 类型：bool
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? RegionPermissionGroupFlag { get; set; }
 
         /// <summary>
@@ -330,6 +361,7 @@ namespace GrpcService.Models
         /// 3. 当regionPermissionGroupFlag为false时：查询未关联该组的人员
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? RegionPermissionGroupID { get; set; }
 
         /// <summary>
@@ -340,12 +372,14 @@ namespace GrpcService.Models
         /// - 必须与regionPermissionGroupFlag和regionPermissionGroupID配合使用
         /// 子类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? GroupDistributeUserType { get; set; }
 
         /// <summary>
         /// 【可选】房间号
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? RoomNumber { get; set; }
     }
 
@@ -370,6 +404,7 @@ namespace GrpcService.Models
         /// 【只读|必需】搜索记录唯一标识
         /// 类型：string
         /// </summary>
+        [JsonPropertyName("searchID")]
         public required string SearchID { get; set; }
 
         /// <summary>
@@ -380,26 +415,31 @@ namespace GrpcService.Models
         /// - NO MATCH#没有匹配数据
         /// 类型：string
         /// </summary>
+        [JsonPropertyName("responseStatusStrg")]
         public required string ResponseStatusStrg { get; set; }
 
         /// <summary>
         /// 【只读|必需】本次返回的记录条数
         /// 类型：int
         /// </summary>
+        [JsonPropertyName("numOfMatches")]
         public required int NumOfMatches { get; set; }
 
         /// <summary>
         /// 【只读|必需】符合条件的记录总条数
         /// 类型：int
         /// </summary>
+        [JsonPropertyName("totalMatches")]
         public required int TotalMatches { get; set; }
 
         /// <summary>
         /// 【只读|可选】人员信息列表
         /// 子类型：UserInfo对象数组
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<UserInfo>? UserInfo { get; set; }
     }
+
     public class UserInfo
     {
         /* ==================== 基础信息 ==================== */
@@ -408,6 +448,7 @@ namespace GrpcService.Models
         /// 类型：string
         /// 约束：非空唯一标识
         /// </summary>
+        [JsonPropertyName("employeeNo")]
         public required string EmployeeNo { get; set; }
 
         /// <summary>
@@ -415,6 +456,7 @@ namespace GrpcService.Models
         /// 类型：bool
         /// 说明：true表示执行删除操作
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? DeleteUser { get; set; }
 
         /// <summary>
@@ -422,6 +464,8 @@ namespace GrpcService.Models
         /// 类型：string
         /// 长度限制：≤64字符
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("name")]
         public string? Name { get; set; }
 
         /// <summary>
@@ -440,6 +484,7 @@ namespace GrpcService.Models
         /// 依赖条件：DeleteUser为false或不存在时必需
         /// 特殊说明：维护人员可随时进入受控区域
         /// </summary>
+        [JsonPropertyName("userType")]
         public required string UserType { get; set; }
 
         /// <summary>
@@ -448,6 +493,7 @@ namespace GrpcService.Models
         /// 范围：0-200
         /// 说明：0表示未占用
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? BoxNum { get; set; }
 
         /* ==================== 权限控制 ==================== */
@@ -456,6 +502,7 @@ namespace GrpcService.Models
         /// 类型：bool
         /// 说明：true表示仅作身份认证，无其他权限
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? OnlyVerify { get; set; }
 
         /// <summary>
@@ -464,6 +511,7 @@ namespace GrpcService.Models
         /// 格式：逗号分隔的门编号（如"1,3"）
         /// 说明：与RightPlan配合使用，为空表示无权限
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? DoorRight { get; set; }
 
         /// <summary>
@@ -473,6 +521,7 @@ namespace GrpcService.Models
         /// 1. 必须与DoorRight同时存在
         /// 2. 计划中的门必须是DoorRight的子集
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<RightPlan>? RightPlan { get; set; }
 
         /// <summary>
@@ -480,6 +529,7 @@ namespace GrpcService.Models
         /// 类型：bool
         /// 说明：true-可解除门锁反锁状态
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? DoubleLockRight { get; set; }
 
         /// <summary>
@@ -487,6 +537,7 @@ namespace GrpcService.Models
         /// 类型：bool
         /// 说明：true-可操作设备本地界面
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? LocalUIRight { get; set; }
 
         /// <summary>
@@ -496,6 +547,7 @@ namespace GrpcService.Models
         /// - 2#人员管理员（增删改查权限）
         /// 依赖条件：LocalUIRight为true时有效
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? LinkageUserID { get; set; }
 
         /* ==================== 时间控制 ==================== */
@@ -506,6 +558,8 @@ namespace GrpcService.Models
         /// - enable=false表示永久有效
         /// - 时间范围：1970-01-01至2037-12-31
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("Valid")]
         public ValidInfo? Valid { get; set; }
 
         /// <summary>
@@ -513,6 +567,7 @@ namespace GrpcService.Models
         /// 类型：bool
         /// 说明：true-开门后延迟关闭
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? CloseDelayEnabled { get; set; }
 
         /// <summary>
@@ -520,6 +575,7 @@ namespace GrpcService.Models
         /// 类型：int
         /// 说明：0表示不限制
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? MaxOpenDoorTime { get; set; }
 
         /// <summary>
@@ -527,6 +583,7 @@ namespace GrpcService.Models
         /// 类型：int
         /// 说明：只读统计值
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? OpenDoorTime { get; set; }
 
         /* ==================== 空间信息 ==================== */
@@ -535,6 +592,7 @@ namespace GrpcService.Models
         /// 类型：int
         /// 说明：传统房间编号
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? RoomNumber { get; set; }
 
         /// <summary>
@@ -542,6 +600,7 @@ namespace GrpcService.Models
         /// 类型：int
         /// 说明：传统楼层编号
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? FloorNumber { get; set; }
 
         /// <summary>
@@ -552,6 +611,7 @@ namespace GrpcService.Models
         /// 医疗对讲：1-1-1-房间号-设备编号
         /// 优先级高于RoomNumber
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<string>? CallNumbers { get; set; }
 
         /// <summary>
@@ -559,6 +619,7 @@ namespace GrpcService.Models
         /// 子类型：int数组
         /// 约束：与CallNumbers元素一一对应
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<int>? FloorNumbers { get; set; }
 
         /* ==================== 组织架构 ==================== */
@@ -567,6 +628,7 @@ namespace GrpcService.Models
         /// 类型：string
         /// 格式：逗号分隔的群组ID（如"1,3,5"）
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? BelongGroup { get; set; }
 
         /// <summary>
@@ -576,6 +638,7 @@ namespace GrpcService.Models
         /// true-自动更新多重认证组的参与人数
         /// false-默认值
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? LinkageUpdateAuthMemberNum { get; set; }
 
         /// <summary>
@@ -584,6 +647,7 @@ namespace GrpcService.Models
         /// 范围：1-32字符
         /// 格式：数字/字母组成
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? UserGroupNodeID { get; set; }
 
         /// <summary>
@@ -591,6 +655,7 @@ namespace GrpcService.Models
         /// 类型：string
         /// 长度：1-64字符
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? GroupName { get; set; }
 
         /* ==================== 认证凭证 ==================== */
@@ -600,6 +665,8 @@ namespace GrpcService.Models
         /// 范围：0-8字符
         /// 说明：空表示未设置
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("password")]
         public string? Password { get; set; }
 
         /// <summary>
@@ -608,6 +675,7 @@ namespace GrpcService.Models
         /// 范围：4-8字符
         /// 说明：仅单机管理模式有效
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? LocalPassword { get; set; }
 
         /// <summary>
@@ -616,6 +684,7 @@ namespace GrpcService.Models
         /// 范围：1-32字符
         /// 约束：需与LoginPassword同时设置
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? UserName { get; set; }
 
         /// <summary>
@@ -624,6 +693,7 @@ namespace GrpcService.Models
         /// 范围：8-16字符
         /// 复杂度：需包含两种及以上字符类型
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? LoginPassword { get; set; }
 
         /// <summary>
@@ -631,6 +701,7 @@ namespace GrpcService.Models
         /// 类型：string
         /// 说明：临时访问凭证
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? DynamicCode { get; set; }
 
         /* ==================== 生物特征 ==================== */
@@ -639,30 +710,35 @@ namespace GrpcService.Models
         /// 类型：int
         /// 说明：null表示未录入
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? NumOfFace { get; set; }
 
         /// <summary>
         /// 【可选】关联指纹数量
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? NumOfFP { get; set; }
 
         /// <summary>
         /// 【可选】关联卡数量
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? NumOfCard { get; set; }
 
         /// <summary>
         /// 【可选】关联虹膜数量
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? NumOfIris { get; set; }
 
         /// <summary>
         /// 【可选】关联掌纹掌静脉数
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? NumOfPPAndPV { get; set; }
 
         /// <summary>
@@ -670,6 +746,7 @@ namespace GrpcService.Models
         /// 类型：int
         /// 说明：HEOP专用字段
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? NumOfIDCard { get; set; }
 
         /* ==================== 人员特征 ==================== */
@@ -680,6 +757,7 @@ namespace GrpcService.Models
         /// - female#女
         /// - unknown#未知
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Gender { get; set; }
 
         /// <summary>
@@ -687,6 +765,7 @@ namespace GrpcService.Models
         /// 类型：int
         /// 范围：0-120
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? Age { get; set; }
 
         /// <summary>
@@ -694,6 +773,7 @@ namespace GrpcService.Models
         /// 类型：string
         /// 长度：1-32字符
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? PhoneNo { get; set; }
 
         /* ==================== 扩展信息 ==================== */
@@ -702,6 +782,7 @@ namespace GrpcService.Models
         /// 子类型：PersonInfoExtend数组
         /// 用途：设备UI个性化显示
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<PersonInfoExtend>? PersonInfoExtends { get; set; }
 
         /// <summary>
@@ -710,6 +791,8 @@ namespace GrpcService.Models
         /// 范围：1-32字符
         /// 说明：替代真实人像的卡通图片ID
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("picID")]
         public string? PicID { get; set; }
 
         /// <summary>
@@ -719,6 +802,7 @@ namespace GrpcService.Models
         /// - 本地设备：file://路径
         /// - 网络存储：http(s)://URL
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? FaceURL { get; set; }
 
         /// <summary>
@@ -726,6 +810,7 @@ namespace GrpcService.Models
         /// 类型：string
         /// 说明：背景透明的人脸特写
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? FaceMattingURL { get; set; }
 
         /* ==================== 特殊功能 ==================== */
@@ -737,6 +822,7 @@ namespace GrpcService.Models
         /// - hand#仅手部
         /// - foot#仅脚部
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? ESDType { get; set; }
 
         /// <summary>
@@ -745,6 +831,7 @@ namespace GrpcService.Models
         /// - Employee#普通员工
         /// - DepartmentManager#部门主管
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? UserLevel { get; set; }
 
         /// <summary>
@@ -754,6 +841,7 @@ namespace GrpcService.Models
         /// - true#校验人员是否已存在（默认）
         /// - false#跳过校验（批量导入时提速）
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? CheckUser { get; set; }
 
         /* ==================== 子系统集成 ==================== */
@@ -762,12 +850,14 @@ namespace GrpcService.Models
         /// 类型：int
         /// 说明：关联考勤子系统
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? GroupId { get; set; }
 
         /// <summary>
         /// 【可选】考勤计划模板
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? LocalAtndPlanTemplateId { get; set; }
 
         /// <summary>
@@ -777,6 +867,7 @@ namespace GrpcService.Models
         /// - late#迟到
         /// - notSignIn#未签到
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? MeetingSignInStatus { get; set; }
 
         /* ==================== 设备信息 ==================== */
@@ -785,6 +876,7 @@ namespace GrpcService.Models
         /// 类型：string
         /// 说明：绑定的设备唯一标识
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? DeviceID { get; set; }
 
         /// <summary>
@@ -792,6 +884,7 @@ namespace GrpcService.Models
         /// 子类型：DeviceInfo数组
         /// 用途：多设备分配（如访客指定门口机）
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<DeviceInfo>? DeviceInfoList { get; set; }
 
         /* ==================== 状态标记 ==================== */
@@ -800,6 +893,7 @@ namespace GrpcService.Models
         /// 类型：bool
         /// 说明：HEOP专用标记
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? UploadedToTheCollectionPlatform { get; set; }
 
         /// <summary>
@@ -807,6 +901,7 @@ namespace GrpcService.Models
         /// 类型：bool
         /// 说明：HEOP采集模式专用
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? CollectionUserList { get; set; }
 
         /* ==================== 排序标识 ==================== */
@@ -816,6 +911,7 @@ namespace GrpcService.Models
         /// 范围：0-99999
         /// 说明：按姓名排序后的索引号
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? SortByNamePosition { get; set; }
 
         /// <summary>
@@ -824,15 +920,16 @@ namespace GrpcService.Models
         /// - !#特殊字符开头
         /// - A-Z#字母开头
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? SortByNameFlag { get; set; }
     }
-
     public class ValidInfo
     {
         /// <summary>
         /// 【只读|必需】使能有效期
         /// 类型：bool
         /// </summary>
+        [JsonPropertyName("enable")]
         public required bool Enable { get; set; }
 
         /// <summary>
@@ -840,19 +937,25 @@ namespace GrpcService.Models
         /// 说明：timeType字段不存在或为local时
         /// 类型：string
         /// </summary>
-        public required string BeginTime { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("beginTime")]
+        public string? BeginTime { get; set; }
 
         /// <summary>
         /// 【只读|必需】有效期结束时间
         /// 说明：timeType字段不存在或为local时
         /// 类型：string
         /// </summary>
-        public required string EndTime { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("endTime")]
+        public string? EndTime { get; set; }
 
         /// <summary>
         /// 【只读|可选】时间类型
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("timeType")]
         public string? TimeType { get; set; }
     }
     public class RightPlan
@@ -861,6 +964,7 @@ namespace GrpcService.Models
         /// 【只读|可选】门编号（锁ID）
         /// 类型：int
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? DoorNo { get; set; }
 
         /// <summary>
@@ -868,6 +972,7 @@ namespace GrpcService.Models
         /// 范围：[0,32]
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? DoorName { get; set; }
 
         /// <summary>
@@ -875,6 +980,7 @@ namespace GrpcService.Models
         /// 范围：[0,32]
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? RegionNodeName { get; set; }
 
         /// <summary>
@@ -887,6 +993,7 @@ namespace GrpcService.Models
         /// - 65533-周六周日24小时生效
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? PlanTemplateNo { get; set; }
 
         /// <summary>
@@ -894,6 +1001,7 @@ namespace GrpcService.Models
         /// 说明：计划模板名称和计划模板编号一一对应
         /// 子类型：string数组
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<string>? PlanTemplateName { get; set; }
     }
     public class PersonInfoExtend
@@ -1098,6 +1206,10 @@ namespace GrpcService.Models
         public string? CardNo { get; set; }
     }
 
+    public class CardResponseInfo
+    {
+        public required CardInfoSearch CardInfoSearch { get; set; }
+    }
     /// <summary>
     /// 卡查询结果
     /// </summary>
@@ -1107,6 +1219,7 @@ namespace GrpcService.Models
         /// 【只读|必需】搜索记录唯一标识
         /// 类型：string
         /// </summary>
+        [JsonPropertyName("searchID")]
         public required string SearchID { get; set; }
 
         /// <summary>
@@ -1117,18 +1230,21 @@ namespace GrpcService.Models
         /// - NO MATCH#没有匹配数据
         /// 类型：string
         /// </summary>
+        [JsonPropertyName("responseStatusStrg")]
         public required string ResponseStatusStrg { get; set; }
 
         /// <summary>
         /// 【只读|必需】本次返回记录数
         /// 类型：int
         /// </summary>
+        [JsonPropertyName("numOfMatches")]
         public required int NumOfMatches { get; set; }
 
         /// <summary>
         /// 【只读|必需】符合条件的总记录数
         /// 类型：int
         /// </summary>
+        [JsonPropertyName("totalMatches")]
         public required int TotalMatches { get; set; }
 
         /// <summary>
@@ -1141,12 +1257,14 @@ namespace GrpcService.Models
     /// <summary>
     /// 卡详细信息
     /// </summary>
+
     public class CardInfo
     {
         /// <summary>
         /// 【只读|必需】工号（人员ID）
         /// 类型：string
         /// </summary>
+        [JsonPropertyName("employeeNo")]
         public required string EmployeeNo { get; set; }
 
         /// <summary>
@@ -1160,13 +1278,25 @@ namespace GrpcService.Models
         /// - 应用场景：当通过输入卡号查询人员信息开启采集时使用
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("employeeNoType")]
         public string? EmployeeNoType { get; set; }
 
         /// <summary>
         /// 【只读|必需】卡号
         /// 类型：string
         /// </summary>
+        [JsonPropertyName("cardNo")]
         public required string CardNo { get; set; }
+
+        /// <summary>
+        /// 【可选】是否删除该卡
+        /// 类型：bool
+        /// 说明：true 表示执行删除操作
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("deleteCard")]
+        public bool? DeleteCard { get; set; }
 
         /// <summary>
         /// 【只读|必需】卡类型
@@ -1180,6 +1310,7 @@ namespace GrpcService.Models
         /// 说明：应急管理卡用于授权临时卡权限，本身不能开门
         /// 类型：string
         /// </summary>
+        [JsonPropertyName("cardType")]
         public required string CardType { get; set; }
 
         /// <summary>
@@ -1188,11 +1319,28 @@ namespace GrpcService.Models
         /// 格式：逗号分隔的门编号字符串
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("leaderCard")]
         public string? LeaderCard { get; set; }
+
+        /// <summary>
+        /// 【可选】是否校验工号
+        /// 类型：bool
+        /// 说明：true 表示启用工号校验
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("checkEmployeeNo")]
         public bool? CheckEmployeeNo { get; set; }
+
+        /// <summary>
+        /// 【可选】是否校验卡号
+        /// 类型：bool
+        /// 说明：true 表示启用卡号校验
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("checkCardNo")]
         public bool? CheckCardNo { get; set; }
     }
-
     public class DeletaUserRequest
     {
         public UserInfoDetailRequest? UserInfoDetail { get; set; }
@@ -1318,14 +1466,20 @@ namespace GrpcService.Models
         public UserInfo? UserInfo { get; set; }
     }
 
+
     public class FaceInfoRequest
     {
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? SearchResultPosition { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? MaxResults { get; set; }
         /// <summary>
         /// 【可选】图片URL
         /// 类型：string
         /// 范围：无限制
         /// 说明：人脸图片的网络地址或本地路径
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? FaceURL { get; set; }
 
         /// <summary>
@@ -1354,6 +1508,7 @@ namespace GrpcService.Models
         /// - 外部传入需保证唯一性（字母数字组合）
         /// - 不传时由设备自动生成（与人员ID一致）
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? FPID { get; set; }
 
         /// <summary>
@@ -1363,8 +1518,8 @@ namespace GrpcService.Models
         /// - true：删除操作（仅删除时填写）
         /// - false/null：新增或修改操作
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? DeleteFP { get; set; }
-
 
         /// <summary>
         /// 【可选】人脸类型
@@ -1375,6 +1530,7 @@ namespace GrpcService.Models
         /// - superFace#超级人脸
         /// 类型：string
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? FaceType { get; set; }
 
         /// <summary>
@@ -1382,9 +1538,10 @@ namespace GrpcService.Models
         /// 类型：bool
         /// 说明：true-保存原始图片数据
         /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? SaveFacePic { get; set; }
-
     }
+
 
     public class CardInfoRequest
     {
