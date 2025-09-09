@@ -1480,6 +1480,7 @@ namespace GrpcService.Models
         /// 说明：人脸图片的网络地址或本地路径
         /// </summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("faceURL")]
         public string? FaceURL { get; set; }
 
         /// <summary>
@@ -1490,6 +1491,7 @@ namespace GrpcService.Models
         /// 约束：最大长度32字符
         /// 类型：string
         /// </summary>
+        [JsonPropertyName("faceLibType")]
         public required string FaceLibType { get; set; }
 
         /// <summary>
@@ -1531,6 +1533,7 @@ namespace GrpcService.Models
         /// 类型：string
         /// </summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("faceType")]
         public string? FaceType { get; set; }
 
         /// <summary>
@@ -1539,6 +1542,7 @@ namespace GrpcService.Models
         /// 说明：true-保存原始图片数据
         /// </summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("saveFacePic")]
         public bool? SaveFacePic { get; set; }
     }
 

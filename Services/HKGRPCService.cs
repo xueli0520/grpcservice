@@ -161,6 +161,7 @@ namespace GrpcService.Services
         public override Task<UpdateWhiteResponse> UpdateWhite(UpdateWhiteRequest req, ServerCallContext ctx)
         {
             OperationResponse whiteResult = new();
+            UpdateWhiteResponse response = new();
             //1.先添加人员
             _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserInfo/SetUp?format=json", "PUT", JsonSerializer.Serialize(new SetUpPersonRequest
             {
@@ -182,60 +183,67 @@ namespace GrpcService.Services
                    );
             if (whiteResult.StatusCode != 1)
             {
-                return Task.FromResult(new UpdateWhiteResponse
+                response = new UpdateWhiteResponse
                 {
                     Success = false,
                     Message = whiteResult.ErrorMsg,
                     ErrorCode = whiteResult.ErrorCode.ToString(),
                     DeviceId = req.DeviceId,
                     Users = req.Users
-                });
+                };
             }
             //2.添加人脸    
-            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/Intelligent/FDLib/FDSetUp?format=json", "PUT", JsonSerializer.Serialize(new FaceInfoRequest
+            if (!string.IsNullOrEmpty(req.Users.PicPath))
             {
-                FaceURL = req.Users.PicPath,
-                FaceLibType = "blackFD",
-                FDID = req.Users.EmployeeNo,
-                FPID = req.Users.EmployeeNo,
-                FaceType = "normalFace",
-                SaveFacePic = true
-            }),
-               (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!
-                   );
-            if (whiteResult.StatusCode != 1)
-            {
-                return Task.FromResult(new UpdateWhiteResponse
+                _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/Intelligent/FDLib/FDSetUp?format=json", "PUT", JsonSerializer.Serialize(new FaceInfoRequest
                 {
-                    Success = false,
-                    Message = whiteResult.ErrorMsg,
-                    ErrorCode = whiteResult.ErrorCode.ToString(),
-                    DeviceId = req.DeviceId,
-                    Users = req.Users
-                });
+                    FaceURL = req.Users.PicPath,
+                    FaceLibType = "blackFD",
+                    FDID = "1",//普通人脸库id为1
+                    FPID = req.Users.EmployeeNo,
+                    FaceType = "normalFace",
+                    SaveFacePic = true
+                }),
+                   (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!
+                       );
+                if (whiteResult.StatusCode != 1)
+                {
+                    response = new UpdateWhiteResponse
+                    {
+                        Success = false,
+                        Message = whiteResult.ErrorMsg,
+                        ErrorCode = whiteResult.ErrorCode.ToString(),
+                        DeviceId = req.DeviceId,
+                        Users = req.Users
+                    };
+                }
             }
             //3.添加卡号
-            _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/CardInfo/SetUp?format=json", "PUT", JsonSerializer.Serialize(new CardInfoRequest
+            if (!string.IsNullOrEmpty(req.Users.CardNumber) && req.Users.CardNumber != "0")
             {
-                CardInfo = new CardInfo
+                _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/CardInfo/SetUp?format=json", "PUT", JsonSerializer.Serialize(new CardInfoRequest
                 {
-                    CardNo = req.Users.CardNumber,
-                    EmployeeNo = req.Users.EmployeeNo,
-                    CardType = "normalCard",
-                    CheckEmployeeNo = true,
-                    CheckCardNo = true
-                }
-            }),
-               (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!
-                   );
-            return Task.FromResult(new UpdateWhiteResponse
-            {
-                Success = whiteResult.StatusCode == 1,
-                Message = whiteResult.ErrorMsg,
-                ErrorCode = whiteResult.ErrorCode.ToString(),
-                DeviceId = req.DeviceId,
-                Users = req.Users
-            });
+                    CardInfo = new CardInfo
+                    {
+                        CardNo = req.Users.CardNumber,
+                        EmployeeNo = req.Users.EmployeeNo,
+                        CardType = "normalCard",
+                        CheckEmployeeNo = true,
+                        CheckCardNo = true
+                    }
+                }),
+                   (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!
+                       );
+                response = new UpdateWhiteResponse
+                {
+                    Success = whiteResult.StatusCode == 1,
+                    Message = whiteResult.StatusCode == 1 ? "OK" : whiteResult.ErrorMsg,
+                    ErrorCode = whiteResult.StatusCode == 1 ? "0" : whiteResult.ErrorCode.ToString(),
+                    DeviceId = req.DeviceId,
+                    Users = req.Users
+                };
+            }
+            return Task.FromResult(response = new UpdateWhiteResponse { Success = true, DeviceId = req.DeviceId, Users = req.Users, Message = "OK", ErrorCode = "0" });
         }
 
         public override async Task<DeleteWhiteResponse> DeleteWhite(DeleteWhiteRequest req, ServerCallContext ctx)

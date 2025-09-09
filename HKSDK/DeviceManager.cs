@@ -80,7 +80,7 @@ namespace GrpcService.HKSDK
                     else
                     {
                         // 清理旧连接
-                        await DisconnectDeviceAsync(deviceId, existingDevice.UserId ?? -1);
+                        await DisconnectDeviceAsync(deviceId, existingDevice.UserId);
                         _logger.LogInformation("清理设备旧连接: {DeviceId}", deviceId);
                     }
                 }
@@ -210,7 +210,7 @@ namespace GrpcService.HKSDK
             {
                 if (_devices.TryGetValue(deviceId, out var device))
                 {
-                    _ = Task.Run(() => DisconnectDeviceAsync(deviceId, device.UserId ?? -1));
+                    _ = Task.Run(() => DisconnectDeviceAsync(deviceId, device.UserId));
                 }
             }
 
@@ -384,7 +384,7 @@ namespace GrpcService.HKSDK
             struParam.pOutBuffer = Marshal.AllocHGlobal(20 * 1024);    //输出缓冲区，如果接口调用失败提示错误码43，需要增大输出缓冲区
             struParam.dwOutSize = 20 * 1024;
 
-            if (!HCOTAPCMS.OTAP_CMS_ISAPIPassThrough((int)device.UserId, ref struParam))
+            if (!HCOTAPCMS.OTAP_CMS_ISAPIPassThrough(device.UserId, ref struParam))
             {
                 _logger.LogError($"{deviceId},{url} OTAP_CMS_ISAPIPassThrough failed, error:" + HCOTAPCMS.OTAP_CMS_GetLastError());
                 return Task.FromResult(map(false, $"指令下发失败{HCOTAPCMS.OTAP_CMS_GetLastError()}"));
@@ -534,7 +534,7 @@ namespace GrpcService.HKSDK
         public string? DeviceId { get; set; }
         public string? DeviceIP { get; set; }
         public int? DevicePort { get; set; }
-        public int? UserId { get; set; }
+        public int UserId { get; set; }
         public bool? IsConnected { get; set; }
         public DateTime? LastHeartbeat { get; set; }
         public DateTime? RegisterTime { get; set; }
