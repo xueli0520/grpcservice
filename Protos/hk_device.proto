@@ -29,11 +29,11 @@ service HikDeviceService {
   rpc SetDoorMode(SetDoorModeRequest) returns (SetDoorModeResponse);
   // 获取设备状态
   rpc GetDeviceStatus(GetDeviceStatusRequest) returns (GetDeviceStatusResponse);
-  // 人员管理相关
+  // 人员管理相关(完成)
   rpc UpdateWhite(UpdateWhiteRequest) returns (UpdateWhiteResponse);
   rpc DeleteWhite(DeleteWhiteRequest) returns (DeleteWhiteResponse);
   rpc PageWhite(PageWhiteRequest) returns (PageWhiteResponse);
-  // 时段管理相关
+  // 时段管理相关（完成）
   rpc UpdateTimezone(UpdateTimezoneRequest) returns (UpdateTimezoneResponse);
   // 门禁模板相关
   rpc SetDoorTemplate(DoorTemplateRequest) returns (DoorTemplateResponse);

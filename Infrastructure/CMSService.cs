@@ -1,6 +1,5 @@
 ﻿using GrpcService.Common;
 using GrpcService.Models;
-using GrpcService.Services;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
@@ -9,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using static GrpcService.HKSDK.HCOTAPCMS;
 
-namespace GrpcService.HKSDK
+namespace GrpcService.Infrastructure
 {
     public class CMSService : IHostedService, IDisposable
     {
@@ -206,28 +205,6 @@ namespace GrpcService.HKSDK
                     Console.WriteLine("OTAP_CMS_SubscribeMsg ENUM_OTAP_CMS_SET_TOPIC_FILTER succ!");
                 }
             }
-        }
-
-        /// <summary>
-        /// 获取服务状态
-        /// </summary>
-        public Dictionary<string, object> GetServiceStatus()
-        {
-            return new Dictionary<string, object>
-            {
-                ["initialized"] = _isInitialized,
-                ["listen_handle"] = CMSServiceHelpers.CmsListenHandle,
-                ["platform"] = GetPlatformInfo(),
-                ["configuration"] = new Dictionary<string, object>
-                {
-                    ["cms_server"] = $"{_config.CmsServerIP}:{_config.CmsServerPort}",
-                    ["das_server"] = $"{_config.DasServerIP}:{_config.DasServerPort}",
-                    ["pic_server"] = $"{_config.PicServerIP}:{_config.PicServerPort}",
-                    ["heartbeat_timeout"] = _config.HeartbeatTimeoutSeconds,
-                    ["max_concurrent_operations"] = _config.MaxConcurrentOperations
-                },
-                ["device_statistics"] = _deviceManager.GetDeviceStatistics()
-            };
         }
 
         /// <summary>
@@ -432,7 +409,7 @@ namespace GrpcService.HKSDK
                 {
                     try
                     {
-                        var (Success, Message, DeviceId) = await _deviceManager.RegisterDeviceAsync(lUserID, struDevInfo);
+                        var (Success, Message, DeviceId) = _deviceManager.RegisterDevice(lUserID, struDevInfo);
                         if (Success)
                         {
                             _deviceLogger.LogDeviceInfo(deviceId, "设备注册成功");
@@ -488,13 +465,12 @@ namespace GrpcService.HKSDK
             try
             {
                 _deviceLogger.LogDeviceInfo(deviceId, "设备下线: UserID: {UserID}", lUserID);
-
                 // 异步断开设备连接
-                _ = Task.Run(async () =>
+                _ = Task.Run(() =>
                 {
                     try
                     {
-                        await _deviceManager.DisconnectDeviceAsync(deviceId, lUserID);
+                        _deviceManager.RemoveDevice(deviceId);
                     }
                     catch (Exception ex)
                     {

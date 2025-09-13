@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace GrpcService.Services
+namespace GrpcService.Infrastructure
 {
     public class DeviceLoggerService : IDeviceLoggerService, IDisposable
     {

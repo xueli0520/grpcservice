@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace GrpcService.HKSDK;
+namespace GrpcService.Infrastructure;
 public class SubscribeEvent
 {
     private readonly Channel<DeviceEvent> _channel = Channel.CreateUnbounded<DeviceEvent>();

@@ -1,13 +1,22 @@
-﻿using GrpcService.Services;
-using System;
-using GrpcService.HKSDK;
+﻿using System;
 using Serilog;
 using GrpcService.Models;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.IO;
+using GrpcService.Api;
+using GrpcService.Infrastructure;
+using StackExchange.Redis;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Redis 配置
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisConn = builder.Configuration.GetConnectionString("Redis");
+    return ConnectionMultiplexer.Connect(redisConn!);
+});
+
 // 常量提取
 const int DefaultRetainedFileCountLimit = 30;
 const int DefaultMaxReceiveMessageSize = 4194304;

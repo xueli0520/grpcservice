@@ -1,4 +1,4 @@
-﻿namespace GrpcService.Services
+﻿namespace GrpcService.Infrastructure
 {
     public interface IDeviceLoggerService
     {
