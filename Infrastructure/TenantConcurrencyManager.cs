@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
+﻿using System.Collections.Concurrent;
 
 namespace GrpcService.Infrastructure
 {
@@ -24,7 +19,7 @@ namespace GrpcService.Infrastructure
                 _maxConcurrencyPerTenant = Environment.ProcessorCount;
             }
 
-            _deviceTenantMap = configuration.GetSection("DeviceTenantMap").Get<Dictionary<string, string>>() ?? new();
+            _deviceTenantMap = configuration.GetSection("DeviceTenantMap").Get<Dictionary<string, string>>() ?? [];
         }
 
         private SemaphoreSlim GetTenantSemaphore(string tenantId)
@@ -52,7 +47,6 @@ namespace GrpcService.Infrastructure
         private sealed class Releaser(SemaphoreSlim semaphore) : IDisposable
         {
             private readonly SemaphoreSlim _semaphore = semaphore;
-
             public void Dispose() => _semaphore.Release();
         }
     }

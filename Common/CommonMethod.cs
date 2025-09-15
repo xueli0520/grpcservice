@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using StackExchange.Redis;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
@@ -42,7 +43,6 @@ namespace GrpcService.Common
                 return false;
             }
         }
-
     }
 
     /// <summary>

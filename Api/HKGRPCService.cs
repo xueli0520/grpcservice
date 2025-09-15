@@ -6,15 +6,6 @@ using GrpcService.Infrastructure;
 using GrpcService.Models;
 using System.Text.Json;
 using System.Xml.Serialization;
-using Microsoft.Extensions.Logging;
-using System.Threading;
-using System.Threading.Tasks;
-using System.IO;
-using System;
-using System.Linq;
-using System.Collections.Generic;
-using Microsoft.Graph;
-using Microsoft.Graph.Models;
 using StackExchange.Redis;
 
 namespace GrpcService.Api
@@ -25,8 +16,8 @@ namespace GrpcService.Api
         IGrpcRequestQueueService requestQueue,
         IDeviceLoggerService deviceLogger,
         SubscribeEvent subscribeEvent,
-        TenantConcurrencyManager tenantConcurrency,
-        RedisService? redis = null
+
+        RedisService redis
         ) : HikDeviceService.HikDeviceServiceBase
     {
         private readonly ILogger<HkDeviceService> _logger = logger;
@@ -34,16 +25,12 @@ namespace GrpcService.Api
         private readonly IGrpcRequestQueueService _requestQueue = requestQueue;
         private readonly IDeviceLoggerService _deviceLogger = deviceLogger;
         private readonly SubscribeEvent _bus = subscribeEvent;
-        private readonly TenantConcurrencyManager _tenantConcurrency = tenantConcurrency;
-        private readonly RedisService? _redis = redis;
+        private readonly RedisService _redis = redis;
 
         /// <summary>
         /// 订阅推送事件（保持原实现）
         /// </summary>
-        public override async Task SubscribeAllEvents(
-    Empty request,
-    IServerStreamWriter<DeviceEvent> responseStream,
-    ServerCallContext context)
+        public override async Task SubscribeAllEvents(Empty request, IServerStreamWriter<DeviceEvent> responseStream, ServerCallContext context)
         {
             var clientId = context.GetHttpContext()?.Connection?.Id ?? Guid.NewGuid().ToString();
             var channel = $"device:events:{clientId}";
@@ -52,17 +39,24 @@ namespace GrpcService.Api
             var consumerName = $"consumer-{clientId}";
 
             _logger.LogInformation("客户端 {ClientId} 开始订阅事件频道 {Channel}", clientId, channel);
-
             try
             {
-                // 确保消费者组存在
                 try
                 {
-                    await _redis.StreamCreateConsumerGroupAsync(streamKey, consumerGroup, "0", true);
+                    await _redis.SetStringAsync(streamKey, consumerGroup, null, true);
+                    //await _redis.Subscribe(channel, async (ch, msg) =>
+                    //{
+                    //    var deviceEvent = JsonSerializer.Deserialize<DeviceEvent>(msg!);
+                    //    if (deviceEvent != null)
+                    //    {
+                    //        await responseStream.WriteAsync(deviceEvent);
+                    //    }
+                    //});
+
                 }
                 catch (RedisServerException ex) when (ex.Message.Contains("BUSYGROUP"))
                 {
-                    // 消费者组已存在，忽略错误
+                    _logger.LogWarning(ex, "Redis Consumer Group 已存在");
                 }
 
                 // 读取未处理的历史消息
@@ -81,14 +75,15 @@ namespace GrpcService.Api
                             count: 10,
                             noAck: false);
 
-                        if (results.Any())
+                        if (results.Count != 0)
                         {
                             foreach (var result in results)
                             {
-                                foreach (var entry in result.Values)
-                                {
-                                    await _deviceManager.ProcessStreamEntry(entry, responseStream, streamKey, consumerGroup);
-                                }
+                                //foreach (var entry in result.Values)
+                                //{
+                                //    await _deviceManager.ProcessStreamEntry(entry, responseStream, streamKey, consumerGroup);
+                                //}
+                                await _deviceManager.ProcessStreamEntry(result, responseStream, streamKey, consumerGroup);
                             }
                         }
                         else
@@ -143,7 +138,6 @@ namespace GrpcService.Api
                 UptimeSeconds = uptime,
                 Status = "OK"
             };
-
             return Task.FromResult(response);
         }
 
@@ -157,57 +151,15 @@ namespace GrpcService.Api
         }
 
         /// <summary>
-        /// Helper: 在调用 ExecuteIsapi 前后进行租户并发控制 & 可选 Redis 写状态
-        /// 说明：tenantConcurrency 是通过 deviceId 隐式解析租户（如果 tenant map 可用）
-        /// </summary>
-        private async Task<T> ExecuteIsapiWithConcurrency<T>(string deviceId, Func<Task<T>> execFunc, string? redisKeyOnStart = null, string? redisKeyOnComplete = null)
-            where T : class
-        {
-            // Acquire tenant-level semaphore using deviceId (tenant resolution inside)
-            using (await _tenantConcurrency.AcquireAsync(deviceId))
-            {
-                // write optional start marker
-                if (!string.IsNullOrEmpty(redisKeyOnStart) && _redis != null)
-                {
-                    try { await _redis.SetStringAsync(redisKeyOnStart, "started", TimeSpan.FromMinutes(10)); } catch { /* ignore */ }
-                }
-
-                try
-                {
-                    var result = await execFunc();
-
-                    // optional complete marker
-                    if (!string.IsNullOrEmpty(redisKeyOnComplete) && _redis != null)
-                    {
-                        try { await _redis.SetStringAsync(redisKeyOnComplete, "success", TimeSpan.FromMinutes(10)); } catch { /* ignore */ }
-                    }
-
-                    return result;
-                }
-                catch (Exception ex)
-                {
-                    if (!string.IsNullOrEmpty(redisKeyOnComplete) && _redis != null)
-                    {
-                        try { await _redis.SetStringAsync(redisKeyOnComplete, "error:" + ex.Message, TimeSpan.FromMinutes(10)); } catch { /* ignore */ }
-                    }
-                    throw;
-                }
-            }
-        }
-
-        /// <summary>
         /// 请注意：ExecuteIsapi 的泛型签名与原项目一致（返回 Task<T>），
         /// 我们把对它的调用放到 ExecuteIsapiWithConcurrency 中。
         /// </summary>
         public override Task<GetDeviceInfoResponse> GetDeviceInfo(GetDeviceInfoRequest req, ServerCallContext ctx)
         {
-            // wrapper that calls deviceManager.ExecuteIsapi inside concurrency control
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                // original inline body calling ExecuteIsapi
                 var serializer = new XmlSerializer(typeof(GrpcDeviceInfo));
-                // call the original ExecuteIsapi method on device manager
-                var t = await _deviceManager.ExecuteIsapi(req.DeviceId, "GET /ISAPI/System/deviceInfo", "GET", "",
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "GET /ISAPI/System/deviceInfo", "GET", "",
                     (ok, body) =>
                     {
                         GrpcDeviceInfo device;
@@ -228,7 +180,6 @@ namespace GrpcService.Api
                             DeviceId = req.DeviceId
                         };
                     });
-                return t as GetDeviceInfoResponse;
             })!;
         }
 
@@ -237,12 +188,11 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<OpenDoorResponse> OpenDoor(OpenDoorRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var t = await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/RemoteControl/door/1", "PUT",
-                    ConfigFileUtil.GetReqBodyFromTemplate("\\conf\\Acs\\AcsRemoteControlDoor.xml", new Dictionary<string, object> { { "cmd", "open" } }),
-                    (ok, body) => new OpenDoorResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1001", DeviceId = req.DeviceId });
-                return t as OpenDoorResponse;
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/RemoteControl/door/1", "PUT",
+                     ConfigFileUtil.GetReqBodyFromTemplate("\\conf\\Acs\\AcsRemoteControlDoor.xml", new Dictionary<string, object> { { "cmd", "open" } }),
+                     (ok, body) => new OpenDoorResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1001", DeviceId = req.DeviceId });
             })!;
         }
 
@@ -251,11 +201,10 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<RebootResponse> Reboot(RebootRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var t = await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/System/reboot", "PUT", "",
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/System/reboot", "PUT", "",
                     (ok, body) => new RebootResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1002", DeviceId = req.DeviceId });
-                return t as RebootResponse;
             })!;
         }
 
@@ -265,9 +214,9 @@ namespace GrpcService.Api
         public override Task<SyncTimeResponse> SyncTime(SyncTimeRequest request, ServerCallContext context)
         {
             var currentTime = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssK");
-            return ExecuteIsapiWithConcurrency(request.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(request.DeviceId, async () =>
             {
-                var t = await _deviceManager.ExecuteIsapi(request.DeviceId, "PUT /ISAPI/System/time", "PUT",
+                return await _deviceManager.ExecuteIsapi(request.DeviceId, "PUT /ISAPI/System/time", "PUT",
                     ConfigFileUtil.GetReqBodyFromTemplate("\\conf\\Basic\\SystemTime.xml", new Dictionary<string, object> { { "localTime", currentTime } }),
                     (ok, body) => new SyncTimeResponse
                     {
@@ -276,22 +225,19 @@ namespace GrpcService.Api
                         ErrorCode = ok ? "0" : "1003",
                         DeviceId = request.DeviceId,
                     });
-                return t as SyncTimeResponse;
             })!;
         }
 
         /// <summary>
-        /// 获取设备版本（示例保留原调用）
+        /// 获取设备版本
         /// </summary>
         public override Task<GetVersionResponse> GetVersion(GetVersionRequest req, ServerCallContext ctx)
         {
-            // This method previously called Cms_SetConfigDevAsync: keep original behavior but wrap concurrency
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var _ = _deviceManager.Cms_SetConfigDevAsync(req.DeviceId, HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_GET_MODEL_ATTR, "InfoMgr", "DeviceVersion", "");
-                // returning simple success as before; if original returned more data adjust here
-                return Task.FromResult(new GetVersionResponse { Success = true }) as Task<object>;
-            })! as Task<GetVersionResponse>;
+                var _ = await _deviceManager.Cms_SetConfigDevAsync(req.DeviceId, HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_GET_MODEL_ATTR, "InfoMgr", "DeviceVersion", "");
+                return new GetVersionResponse { Success = true, Message = "OK", ErrorCode = "0" };
+            })!;
         }
 
         /// <summary>
@@ -299,12 +245,11 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<SetDoorModeResponse> SetDoorMode(SetDoorModeRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var t = await _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/DoorMode", "PUT",
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/DoorMode", "PUT",
                     $"<DoorMode><mode>{req.Mode}</mode></DoorMode>",
                     (ok, body) => new SetDoorModeResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1006", DeviceId = req.DeviceId });
-                return t as SetDoorModeResponse;
             })!;
         }
 
@@ -313,7 +258,7 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<UpdateWhiteResponse> UpdateWhite(UpdateWhiteRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
                 OperationResponse whiteResult = new();
                 UpdateWhiteResponse response = new();
@@ -405,7 +350,7 @@ namespace GrpcService.Api
                 }
 
                 // 4. 最终返回
-                return response = new UpdateWhiteResponse { Success = true, DeviceId = req.DeviceId, Users = req.Users, Message = "OK", ErrorCode = "0" } as UpdateWhiteResponse;
+                return response = new UpdateWhiteResponse { Success = true, DeviceId = req.DeviceId, Users = req.Users, Message = "OK", ErrorCode = "0" };
             })!;
         }
 
@@ -414,7 +359,7 @@ namespace GrpcService.Api
         /// </summary>
         public override async Task<DeleteWhiteResponse> DeleteWhite(DeleteWhiteRequest req, ServerCallContext ctx)
         {
-            return await ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return await _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
                 // 1. 发起删除
                 OperationResponse deleteResult = new();
@@ -476,9 +421,9 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<PageWhiteResponse> PageWhite(PageWhiteRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var result = await _deviceManager.ExecuteIsapi(req.DeviceId, "POST /ISAPI/AccessControl/UserInfo/Search?format=json", "POST", JsonSerializer.Serialize(new UserInfoSearchCond
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "POST /ISAPI/AccessControl/UserInfo/Search?format=json", "POST", JsonSerializer.Serialize(new UserInfoSearchCond
                 {
                     SearchID = req.MessageId,
                     SearchResultPosition = req.BeginNo,
@@ -523,7 +468,6 @@ namespace GrpcService.Api
                         }
                         return resp;
                     });
-                return result as PageWhiteResponse;
             })!;
         }
 
@@ -532,16 +476,15 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<UpdateTimezoneResponse> UpdateTimezone(UpdateTimezoneRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var t = await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserRightWeekPlanCfg/1?format=json", "PUT",
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserRightWeekPlanCfg/1?format=json", "PUT",
                    JsonSerializer.Serialize(req.TimezoneGroup),
                     (ok, body) =>
                     {
                         var response = JsonSerializer.Deserialize<OperationResponse>(body)!;
                         return new UpdateTimezoneResponse { Success = response.StatusCode == 1, Message = response.StatusString, ErrorCode = response.ErrorMsg, DeviceId = req.DeviceId };
                     });
-                return t as UpdateTimezoneResponse;
             })!;
         }
 
@@ -550,12 +493,11 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<DoorTemplateResponse> SetDoorTemplate(DoorTemplateRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var t = await _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/DoorTemplate", "PUT",
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/AccessControl/DoorTemplate", "PUT",
                     $"<DoorTemplate><status>{req.Status}</status></DoorTemplate>",
                     (ok, body) => new DoorTemplateResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1015", DeviceId = req.DeviceId });
-                return t as DoorTemplateResponse;
             })!;
         }
 
@@ -564,11 +506,10 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<SyncDeviceParameterResponse> SyncDeviceParameter(SyncDeviceParameterRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var t = await _device_manager.ExecuteIsapi(req.DeviceId, "/ISAPI/System/deviceParameter", "PUT", null,
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "/ISAPI/System/deviceParameter", "PUT", null,
                     (ok, body) => new SyncDeviceParameterResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1016", DeviceId = req.DeviceId });
-                return t as SyncDeviceParameterResponse;
             })!;
         }
 
@@ -577,9 +518,9 @@ namespace GrpcService.Api
         /// </summary>
         public override Task<GetWhiteUserTotalResponse> GetWhiteUserTotal(GetWhiteUserTotalRequest req, ServerCallContext ctx)
         {
-            return ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
+            return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var t = await _deviceManager.ExecuteIsapi(req.DeviceId, "GET /ISAPI/AccessControl/UserInfo/Count?format=json", "GET", null,
+                return await _deviceManager.ExecuteIsapi(req.DeviceId, "GET /ISAPI/AccessControl/UserInfo/Count?format=json", "GET", null,
                     (ok, body) => new GetWhiteUserTotalResponse()
                     {
                         Success = ok,
@@ -588,7 +529,6 @@ namespace GrpcService.Api
                         DeviceId = req.DeviceId,
                         TotalCount = string.IsNullOrEmpty(body) ? 0 : JsonSerializer.Deserialize<GrpcUserInfo>(body)!.UserInfoCount!.UserNumber
                     });
-                return t as GetWhiteUserTotalResponse;
             })!;
         }
     }

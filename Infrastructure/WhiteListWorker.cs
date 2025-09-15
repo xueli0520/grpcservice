@@ -31,7 +31,7 @@ public class WhiteListWorker(
                     continue;
                 }
 
-                var task = JsonSerializer.Deserialize<WhiteListTask>(redisValue);
+                var task = JsonSerializer.Deserialize<WhiteListTask>(redisValue!)!;
                 if (task == null)
                 {
                     _logger.LogWarning("Invalid whitelist task: {Value}", redisValue);
@@ -92,7 +92,7 @@ public class WhiteListWorker(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Processing task {TaskId} failed", task.TaskId);
-            await RetryTaskAsync(task); // 推送到死信队列
+            await RetryTaskAsync(task);
         }
     }
 

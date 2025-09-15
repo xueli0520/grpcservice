@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using GrpcService.HKSDK;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace GrpcService.Infrastructure

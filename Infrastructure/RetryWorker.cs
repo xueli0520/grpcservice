@@ -3,25 +3,18 @@ using StackExchange.Redis;
 using System.Text.Json;
 
 namespace GrpcService.Infrastructure;
-public class RetryWorker : BackgroundService
+public class RetryWorker(
+    ILogger<RetryWorker> logger,
+    IConnectionMultiplexer redis,
+    TenantAwareDeviceManager deviceManager) : BackgroundService
 {
-    private readonly ILogger<RetryWorker> _logger;
-    private readonly IConnectionMultiplexer _redis;
-    private readonly TenantAwareDeviceManager _deviceManager;
+    private readonly ILogger<RetryWorker> _logger = logger;
+    private readonly IConnectionMultiplexer _redis = redis;
+    private readonly TenantAwareDeviceManager _deviceManager = deviceManager;
 
     private const string FailedQueueKey = "whitelist:failed";  // 死信队列
     private const int MaxRetryCount = 3;  // 最大重试次数
     private const int RetryIntervalSeconds = 10;  // 每次重试间隔，单位：秒
-
-    public RetryWorker(
-        ILogger<RetryWorker> logger,
-        IConnectionMultiplexer redis,
-        TenantAwareDeviceManager deviceManager)
-    {
-        _logger = logger;
-        _redis = redis;
-        _deviceManager = deviceManager;
-    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

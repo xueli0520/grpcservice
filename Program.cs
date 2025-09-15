@@ -1,8 +1,6 @@
-﻿using System;
-using Serilog;
+﻿using Serilog;
 using GrpcService.Models;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using System.IO;
 using GrpcService.Api;
 using GrpcService.Infrastructure;
 using StackExchange.Redis;
@@ -16,6 +14,8 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     var redisConn = builder.Configuration.GetConnectionString("Redis");
     return ConnectionMultiplexer.Connect(redisConn!);
 });
+
+builder.Services.AddSingleton<RedisService>();
 
 // 常量提取
 const int DefaultRetainedFileCountLimit = 30;
@@ -51,17 +51,13 @@ builder.Services.AddGrpc(options =>
     options.MaxSendMessageSize = grpcConfig?.MaxSendMessageSize ?? DefaultMaxSendMessageSize;
 });
 
-builder.Services.AddSingleton<IDeviceLoggerService, DeviceLoggerService>();
-builder.Services.AddSingleton<IGrpcRequestQueueService, GrpcRequestQueueService>();
-builder.Services.AddSingleton<DeviceManager>();
-builder.Services.AddSingleton<CMSService>();
-builder.Services.AddSingleton<SubscribeEvent>();
-builder.Services.AddHostedService(provider => provider.GetRequiredService<CMSService>());
+builder.Services.AddSingleton<DeviceLoggerService>();
+builder.Services.AddSingleton<IDeviceLoggerService>(provider => provider.GetRequiredService<DeviceLoggerService>());
 
-builder.Services.AddHostedService(provider => provider.GetService<DeviceManager>()!);
-builder.Services.AddHostedService(provider =>
-   provider.GetService<IGrpcRequestQueueService>() as GrpcRequestQueueService ??
-   throw new InvalidOperationException("Unable to resolve GrpcRequestQueueService"));
+builder.Services.AddSingleton<TenantConcurrencyManager>();
+builder.Services.AddSingleton<GrpcRequestQueueService>();
+builder.Services.AddSingleton<DeviceManager>();
+builder.Services.AddSingleton<SubscribeEvent>();
 
 builder.WebHost.ConfigureKestrel((context, serverOptions) =>
 {
@@ -77,6 +73,10 @@ builder.WebHost.ConfigureKestrel((context, serverOptions) =>
     serverOptions.Limits.MaxConcurrentUpgradedConnections = grpcConfig?.MaxConcurrentCalls ?? DefaultMaxConcurrentCalls;
 });
 
+builder.Services.AddHostedService<GrpcRequestQueueService>();
+builder.Services.AddHostedService<WhiteListWorker>();
+builder.Services.AddHostedService<RetryWorker>();
+
 var app = builder.Build();
 
 app.UseRouting();
@@ -89,7 +89,7 @@ try
     var grpcConfig = app.Configuration.GetSection("GrpcServer").Get<GrpcServerConfiguration>();
     var host = grpcConfig?.Host ?? DefaultHost;
     var port = grpcConfig?.Port ?? DefaultGrpcPort;
-    Log.Information("gRPC服务地址 (HTTP/2, 明文): {Host}:{Port}", host, port);
+    Log.Information("gRPC服务地址: {Host}:{Port}", host, port);
     app.Run();
 }
 catch (Exception ex)

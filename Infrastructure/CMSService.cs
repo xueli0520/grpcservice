@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using static GrpcService.HKSDK.HCOTAPCMS;
 
 namespace GrpcService.Infrastructure
@@ -159,7 +160,7 @@ namespace GrpcService.Infrastructure
             IntPtr ptrSubscribeMsgParam = IntPtr.Zero;
             try
             {
-                CMSServiceHelpers.OTAP_SubscribeMsgCallback_Func ??= new OTAP_CMS_SubscribeMsgCallback(FSubscribeMsgCallback);
+                CMSServiceHelpers.OTAP_SubscribeMsgCallback_Func = new OTAP_CMS_SubscribeMsgCallback(FSubscribeMsgCallback);
                 CMSServiceHelpers.subscribeMsgParam.fnCB = CMSServiceHelpers.OTAP_SubscribeMsgCallback_Func;
 
                 int size = Marshal.SizeOf(CMSServiceHelpers.subscribeMsgParam);
@@ -280,7 +281,7 @@ namespace GrpcService.Infrastructure
 
                 CMSServiceHelpers.cmsListenParam.struAddress.wPort = (short)_config.CmsServerPort;
 
-                CMSServiceHelpers.OTAP_REGISTER_Func ??= new OTAP_CMS_RegisterCallback(FRegisterCallBack);
+                CMSServiceHelpers.OTAP_REGISTER_Func = new OTAP_CMS_RegisterCallback(FRegisterCallBack);
                 CMSServiceHelpers.cmsListenParam.fnCB = CMSServiceHelpers.OTAP_REGISTER_Func;
                 CMSServiceHelpers.cmsListenParam.pUserData = IntPtr.Zero;
 
@@ -310,7 +311,7 @@ namespace GrpcService.Infrastructure
         {
             try
             {
-                CMSServiceHelpers.OTAP_CMS_StorageCallback_Func ??= new OTAP_CMS_StorageCallback(FStorageCallback);
+                CMSServiceHelpers.OTAP_CMS_StorageCallback_Func = new OTAP_CMS_StorageCallback(FStorageCallback);
                 CMSServiceHelpers.struStorageCBParam.fnCB = CMSServiceHelpers.OTAP_CMS_StorageCallback_Func;
 
                 if (!OTAP_CMS_SubscribeStorageMsg(ref CMSServiceHelpers.struStorageCBParam))
@@ -409,7 +410,7 @@ namespace GrpcService.Infrastructure
                 {
                     try
                     {
-                        var (Success, Message, DeviceId) = _deviceManager.RegisterDevice(lUserID, struDevInfo);
+                        var (Success, Message, DeviceId) = await _deviceManager.RegisterDevice(lUserID, struDevInfo);
                         if (Success)
                         {
                             _deviceLogger.LogDeviceInfo(deviceId, "设备注册成功");
@@ -423,6 +424,8 @@ namespace GrpcService.Infrastructure
                     {
                         _deviceLogger.LogDeviceError(deviceId, ex, "异步设备注册异常");
                     }
+
+                    return Task.CompletedTask;
                 });
                 return true;
             }
@@ -436,13 +439,13 @@ namespace GrpcService.Infrastructure
         /// <summary>
         /// 处理设备心跳
         /// </summary>
-        private bool HandleDeviceHeartbeat(int lUserID, string deviceId)
+        private async Task<bool> HandleDeviceHeartbeat(int lUserID, string deviceId)
         {
             try
             {
                 _deviceLogger.LogDeviceInfo(deviceId, "收到设备心跳: UserID: {UserID}", lUserID);
 
-                bool result = _deviceManager.UpdateDeviceHeartbeat(deviceId, lUserID);
+                bool result = await _deviceManager.UpdateDeviceHeartbeat(deviceId, lUserID);
                 if (!result)
                 {
                     _deviceLogger.LogDeviceWarning(deviceId, "更新设备心跳失败");

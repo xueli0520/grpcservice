@@ -1,8 +1,9 @@
-﻿using Microsoft.Graph.Models;
+﻿using GrpcService.Models;
+using Microsoft.Graph.Models;
 using StackExchange.Redis;
 using System.Text.Json;
 
-namespace GrpcService.Infrastructure;   
+namespace GrpcService.Infrastructure;
 public class TenantAwareDeviceManager(
     ILogger<TenantAwareDeviceManager> logger,
     IConnectionMultiplexer redis)
@@ -98,7 +99,7 @@ public class TenantAwareDeviceManager(
     }
 
     // 获取设备信息（根据租户与设备 ID）
-    private async Task<Device> GetDeviceByTenantAsync(string tenantId, string deviceId)
+    private async Task<DeviceConnection> GetDeviceByTenantAsync(string tenantId, string deviceId)
     {
         // 获取设备信息的业务逻辑（从数据库、Redis 或 API）
         var db = _redis.GetDatabase();
@@ -109,11 +110,11 @@ public class TenantAwareDeviceManager(
             return null;
         }
 
-        return JsonSerializer.Deserialize<Device>(deviceJson);
+        return JsonSerializer.Deserialize<DeviceConnection>(deviceJson!)!;
     }
 
     // 更新白名单用户
-    private static async Task<bool> AddWhiteUserAsync(Device device, string cardNo, string personName)
+    private static async Task<bool> AddWhiteUserAsync(DeviceConnection device, string cardNo, string personName)
     {
         // 调用设备 SDK 执行更新白名单操作
         // 假设通过设备 SDK 成功返回 true，失败返回 false
@@ -121,14 +122,14 @@ public class TenantAwareDeviceManager(
     }
 
     // 删除白名单用户
-    private static async Task<bool> RemoveWhiteUserAsync(Device device, string cardNo)
+    private static async Task<bool> RemoveWhiteUserAsync(DeviceConnection device, string cardNo)
     {
         // 调用设备 SDK 执行删除白名单操作
         return await Task.FromResult(true);
     }
 
     // 查询白名单用户
-    private static async Task<List<string>> GetWhiteListAsync(Device device, int pageIndex, int pageSize)
+    private static async Task<List<string>> GetWhiteListAsync(DeviceConnection device, int pageIndex, int pageSize)
     {
         // 调用设备 SDK 执行查询白名单操作
         return await Task.FromResult(new List<string> { "User1", "User2" });

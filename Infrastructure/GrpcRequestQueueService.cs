@@ -37,16 +37,20 @@ namespace GrpcService.Infrastructure
         }
 
         public async Task<TResponse> EnqueueAsync<TRequest, TResponse>(
-            string deviceId,
-            Func<TRequest, CancellationToken, Task<TResponse>> handler,
-            TRequest request,
-            CancellationToken cancellationToken = default)
+         string deviceId,
+         Func<TRequest, CancellationToken, Task<TResponse>> handler,
+         TRequest request,
+         CancellationToken cancellationToken = default)
         {
-            var tcs = new TaskCompletionSource<TResponse>();
+            var tcs = new TaskCompletionSource<object>();
             var item = new TaskRequestItem
             {
                 DeviceId = deviceId,
-                Handler = async (req, ct) => await handler((TRequest)req, ct),
+                Handler = async (req, ct) =>
+                {
+                    var result = await handler((TRequest)req, ct);
+                    return result!; 
+                },
                 Request = request!,
                 RequestId = Guid.NewGuid().ToString(),
                 TaskCompletionSource = tcs,
@@ -58,7 +62,8 @@ namespace GrpcService.Infrastructure
                 throw new InvalidOperationException("Request queue is full.");
             }
 
-            return await tcs.Task.WaitAsync(_requestTimeout, cancellationToken);
+            var result = await tcs.Task.WaitAsync(_requestTimeout, cancellationToken);
+            return (TResponse)result; // 转换回原始类型
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
