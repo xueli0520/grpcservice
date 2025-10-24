@@ -917,7 +917,7 @@ namespace GrpcService.Infrastructure
         {
             var libraries = new[]
             {
-                ("libcrypto", ENUM_OTAP_CMS_INIT_CFG_LIBEAY_PATH),
+                ("libcrypto", ENUM_NET_ECMS_Init_CFG_LIBEAY_PATH),
                 ("libssl", ENUM_OTAP_CMS_INIT_CFG_SSLEAY_PATH),
                 ("libiconv2", ENUM_OTAP_CMS_INIT_CFG_LIBICONV_PATH),
                 ("libz", ENUM_OTAP_CMS_INIT_CFG_ZLIB_PATH)
