@@ -86,7 +86,7 @@ namespace GrpcService.Common
                 throw new ArgumentNullException("filePath null error!");
             }
 
-            return AppDomain.CurrentDomain.BaseDirectory + "resources" + filePath;
+            return AppDomain.CurrentDomain.BaseDirectory + "/" + filePath;
         }
     }
 }

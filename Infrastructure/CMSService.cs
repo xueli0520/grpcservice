@@ -1,4 +1,5 @@
 ﻿using GrpcService.Common;
+using GrpcService.HKSDK;
 using GrpcService.Models;
 using Microsoft.Extensions.Options;
 using System;
@@ -7,7 +8,11 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using static GrpcService.HKSDK.HCOTAPCMS;
+using static GrpcService.HKSDK.HCISUPCMS;
+using static GrpcService.HKSDK.HCISUPAlarm;
+using static GrpcService.HKSDK.HCISUPPublic;
+using Microsoft.Graph.Models;
+using System.Text.Json;
 
 namespace GrpcService.Infrastructure
 {
@@ -26,7 +31,7 @@ namespace GrpcService.Infrastructure
         private const int MaxIpLength = 127;
         private const int MaxBucketLength = 63;
         private const int MaxRegionLength = 31;
-        private const string DefaultTopicFilter = "#model#\r\n";
+        private const string DefaultTopicFilter = "model/event/report/#\r\n";
         private const string SdkLogDir = "SdkLog";
 
         public CMSService(
@@ -53,14 +58,14 @@ namespace GrpcService.Infrastructure
                 throw new ArgumentException("CmsServerIP 配置不能为空");
             if (_config.CmsServerPort <= 0)
                 throw new ArgumentException("CmsServerPort 配置无效");
+            if (string.IsNullOrWhiteSpace(_config.AlarmServerIP))
+                throw new ArgumentException("AlarmServerIP 配置不能为空");
+            if (_config.AlarmServerPort <= 0)
+                throw new ArgumentException("AlarmServerPort 配置不能为空");
             if (string.IsNullOrWhiteSpace(_config.DasServerIP))
                 throw new ArgumentException("DasServerIP 配置不能为空");
             if (_config.DasServerPort <= 0)
                 throw new ArgumentException("DasServerPort 配置无效");
-            if (string.IsNullOrWhiteSpace(_config.PicServerIP))
-                throw new ArgumentException("PicServerIP 配置不能为空");
-            if (_config.PicServerPort <= 0)
-                throw new ArgumentException("PicServerPort 配置无效");
             if (_config.Storage == null)
                 throw new ArgumentException("Storage 配置不能为空");
         }
@@ -100,52 +105,64 @@ namespace GrpcService.Infrastructure
 
                 try
                 {
-                    _logger.LogInformation("开始初始化CMS服务...");
+                    _logger.LogInformation("开始初始化服务...");
                     _logger.LogDebug("当前平台: {Platform}", GetPlatformInfo());
                     SetupDependencyLibraries();
                     // 初始化SDK
-                    if (!OTAP_CMS_Init())
+                    if (!NET_ECMS_Init())
                     {
-                        var errorCode = OTAP_CMS_GetLastError();
-                        var errorMessage = $"OTAP_CMS_Init failed, error: {errorCode}";
+                        var errorCode = NET_ECMS_GetLastError();
+                        var errorMessage = $"NET_ECMS_Init failed, error: {errorCode}";
                         _logger.LogError(errorMessage);
                         throw new InvalidOperationException(errorMessage);
                     }
+                    if (!NET_EALARM_Init())
+                    {
+                        var errorCode = NET_EALARM_GetLastError();
+                        var errorMessage = $"NET_EALARM_Init failed, error: {errorCode}";
+                        _logger.LogError(errorMessage);
+                        throw new InvalidOperationException(errorMessage);
+                    }
+
                     //配置设备心跳 
                     IntPtr pBuffer = IntPtr.Zero;
                     pBuffer = Marshal.AllocHGlobal(sizeof(bool));
                     Marshal.WriteByte(pBuffer, 1); // TRUE = 1
-                    if (!OTAP_CMS_SetSDKLocalCfg(ENUM_OTAP_CMS_DEV_DAS_PINGREQ_CALLBACK, pBuffer))
+                    if (!NET_ECMS_SetSDKLocalCfg(NET_EHOME_LOCAL_CFG_DEV_DAS_PINGREQ_CALLBACK, pBuffer))
                     {
-                        var errorCode = OTAP_CMS_GetLastError();
-                        var errorMessage = $"OTAP_CMS_Init failed, error: {errorCode}";
+                        var errorCode = NET_ECMS_GetLastError();
+                        var errorMessage = $"NET_ECMS_Init failed, error: {errorCode}";
                         _logger.LogError(errorMessage);
                         Console.WriteLine(errorMessage);
                     }
                     _logger.LogInformation("心跳设置 成功");
-
-                    _logger.LogInformation("OTAP_CMS_Init 初始化成功!");
+                    _logger.LogInformation("初始化成功!");
 
                     // 设置日志
                     var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, SdkLogDir);
                     CommonMethod.EnsureDirectoryExists(logPath);
-                    OTAP_CMS_SetLogToFile(3, logPath, false);
+                    NET_ECMS_SetLogToFile(3, logPath + "/cms", false);
+                    NET_EALARM_SetLogToFile(3, logPath + "/alarm", false);
+                    if (!NET_EALARM_SetSDKLocalCfg(NET_EHOME_LOCAL_CFG_TYPE.COM_PATH, Marshal.StringToHGlobalAnsi(CMSServiceHelpers.sCurPath + "/HCAapSDKCom")))
+                    {
+                        _logger.LogError("NET_EALARM_SetSDKLocalCfg COM_PATH failed, error:" + NET_EALARM_GetLastError());
+                    }
 
-                    // 订阅消息
-                    SubscribeMessages();
+                    // 报警服务启动监听
+                    Alarm_Startlisten();
 
                     // 订阅存储消息
-                    SubscribeStorageMessages();
+                    //SubscribeStorageMessages();
 
-                    // 启动监听
+                    // 中心服务启动监听
                     StartListen();
 
                     _isInitialized = true;
-                    _logger.LogInformation("CMS服务初始化完成");
+                    _logger.LogInformation("服务初始化完成");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "CMS服务初始化失败");
+                    _logger.LogError(ex, "服务初始化失败");
                     throw;
                 }
             }
@@ -155,57 +172,35 @@ namespace GrpcService.Infrastructure
         /// <summary>
         /// 订阅消息
         /// </summary>
-        private void SubscribeMessages()
+        private void Alarm_Startlisten()
         {
             IntPtr ptrSubscribeMsgParam = IntPtr.Zero;
             try
             {
-                CMSServiceHelpers.OTAP_SubscribeMsgCallback_Func = new OTAP_CMS_SubscribeMsgCallback(FSubscribeMsgCallback);
-                CMSServiceHelpers.subscribeMsgParam.fnCB = CMSServiceHelpers.OTAP_SubscribeMsgCallback_Func;
+                CMSServiceHelpers.struAlarmListenParam.Init();
 
-                int size = Marshal.SizeOf(CMSServiceHelpers.subscribeMsgParam);
-                ptrSubscribeMsgParam = Marshal.AllocHGlobal(size);
-                Marshal.StructureToPtr(CMSServiceHelpers.subscribeMsgParam, ptrSubscribeMsgParam, false);
+                var alarmServerIP = _config.AlarmServerIP;
+                CMSServiceHelpers.struAlarmListenParam.byProtocolType = 2; // 2-MQTT(ISUP5.0)
+                CMSServiceHelpers.struAlarmListenParam.struAddress.wPort = (short)_config.AlarmServerPort;
+                CMSServiceHelpers.struAlarmListenParam.dwKeepAliveSec = _config.HeartbeatCheckIntervalSeconds;
+                CMSServiceHelpers.struAlarmListenParam.dwTimeOutCount = _config.CommandTimeoutMinutes;
+                alarmServerIP.CopyTo(0, CMSServiceHelpers.struAlarmListenParam.struAddress.szIP, 0, alarmServerIP.Length);
+                CMSServiceHelpers.AlarmMsgCallBack_Func = new EHomeMsgCallBack(AlarmMsgCallBack);
+                CMSServiceHelpers.struAlarmListenParam.fnMsgCb = CMSServiceHelpers.AlarmMsgCallBack_Func;
 
-                if (!OTAP_CMS_SubscribeMsg(OTAP_CMS_SUBSCRIBE_MSG_ENUM.ENUM_OTAP_CMS_SET_CALLBACK_FUN, ptrSubscribeMsgParam))
+                CMSServiceHelpers.AlarmListenHandle = NET_EALARM_StartListen(ref CMSServiceHelpers.struAlarmListenParam);
+                if (CMSServiceHelpers.AlarmListenHandle < 0)
                 {
-                    var errorCode = OTAP_CMS_GetLastError();
-                    _logger.LogError("OTAP_CMS_SubscribeMsg failed, error: {ErrorCode}", errorCode);
+                    _logger.LogError($"NET_EALARM_StartListen failed, error:{NET_ECMS_GetLastError()}");
                 }
-                else
-                {
-                    _logger.LogInformation("OTAP_CMS_SubscribeMsg succ");
-                    CMSServiceHelpers.CmsListenHandle = -1;
-                }
+                _logger.LogInformation($"报警服务启动成功,ip:{alarmServerIP},端口:{_config.AlarmServerPort},handle:{CMSServiceHelpers.AlarmListenHandle}");
+
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "订阅消息异常");
+                _logger.LogError(ex, "报警服务启动异常");
             }
-            finally
-            {
-                if (ptrSubscribeMsgParam != IntPtr.Zero)
-                    Marshal.FreeHGlobal(ptrSubscribeMsgParam);
-                OTAP_CMS_SUBSCRIBEMSG_TOPIC_FILTER_PARAM struTopicFilter = new();
-                struTopicFilter.Init();
 
-                string szTopicFilter = "#\r\n";//订阅的主题
-                struTopicFilter.dwTopicFilterLen = (uint)szTopicFilter.Length;
-                struTopicFilter.pTopicFilter = Marshal.StringToHGlobalAnsi(szTopicFilter);
-
-                int size = Marshal.SizeOf(struTopicFilter);
-                IntPtr ptrStruTopicFilter = Marshal.AllocHGlobal(size);
-                Marshal.StructureToPtr(struTopicFilter, ptrStruTopicFilter, false);
-
-                if (!OTAP_CMS_SubscribeMsg(OTAP_CMS_SUBSCRIBE_MSG_ENUM.ENUM_OTAP_CMS_SET_TOPIC_FILTER, ptrStruTopicFilter))
-                {
-                    Console.WriteLine("OTAP_CMS_SubscribeMsg ENUM_OTAP_CMS_SET_TOPIC_FILTER failed, error:" + OTAP_CMS_GetLastError());
-                }
-                else
-                {
-                    Console.WriteLine("OTAP_CMS_SubscribeMsg ENUM_OTAP_CMS_SET_TOPIC_FILTER succ!");
-                }
-            }
         }
 
         /// <summary>
@@ -235,14 +230,14 @@ namespace GrpcService.Infrastructure
                     {
                         try
                         {
-                            if (!OTAP_CMS_Fini())
+                            if (!NET_ECMS_Fini())
                             {
-                                var errorCode = OTAP_CMS_GetLastError();
-                                _logger.LogError("OTAP_CMS_Fini failed, error: {ErrorCode}", errorCode);
+                                var errorCode = NET_ECMS_GetLastError();
+                                _logger.LogError("NET_ECMS_Fini failed, error: {ErrorCode}", errorCode);
                             }
                             else
                             {
-                                _logger.LogInformation("OTAP_CMS_Fini 成功");
+                                _logger.LogInformation("NET_ECMS_Fini 成功");
                             }
                         }
                         catch (Exception ex)
@@ -281,20 +276,20 @@ namespace GrpcService.Infrastructure
 
                 CMSServiceHelpers.cmsListenParam.struAddress.wPort = (short)_config.CmsServerPort;
 
-                CMSServiceHelpers.OTAP_REGISTER_Func = new OTAP_CMS_RegisterCallback(FRegisterCallBack);
-                CMSServiceHelpers.cmsListenParam.fnCB = CMSServiceHelpers.OTAP_REGISTER_Func;
+                CMSServiceHelpers.ISUP_REGISTER_Func = new DEVICE_REGISTER_CB(FRegisterCallBack);
+                CMSServiceHelpers.cmsListenParam.fnCB = CMSServiceHelpers.ISUP_REGISTER_Func;
                 CMSServiceHelpers.cmsListenParam.pUserData = IntPtr.Zero;
 
-                CMSServiceHelpers.CmsListenHandle = OTAP_CMS_StartListen(ref CMSServiceHelpers.cmsListenParam);
+                CMSServiceHelpers.CmsListenHandle = NET_ECMS_StartListen(ref CMSServiceHelpers.cmsListenParam);
                 if (CMSServiceHelpers.CmsListenHandle < 0)
                 {
-                    var errorCode = OTAP_CMS_GetLastError();
-                    var errorMessage = $"OTAP_CMS_StartListen failed, error: {errorCode}";
+                    var errorCode = NET_ECMS_GetLastError();
+                    var errorMessage = $"NET_ECMS_StartListen failed, error: {errorCode}";
                     _logger.LogError(errorMessage);
                     throw new InvalidOperationException(errorMessage);
                 }
 
-                _logger.LogInformation("OTAP_CMS_StartListen 启动成功, IP: {IP}, Port: {Port}, Handle: {Handle}",
+                _logger.LogInformation("中心服务启动成功, IP: {IP}, Port: {Port}, Handle: {Handle}",
                     cmsServerIP, _config.CmsServerPort, CMSServiceHelpers.CmsListenHandle);
             }
             catch (Exception ex)
@@ -305,106 +300,87 @@ namespace GrpcService.Infrastructure
         }
 
         /// <summary>
-        /// 订阅存储消息
-        /// </summary>
-        private void SubscribeStorageMessages()
-        {
-            try
-            {
-                CMSServiceHelpers.OTAP_CMS_StorageCallback_Func = new OTAP_CMS_StorageCallback(FStorageCallback);
-                CMSServiceHelpers.struStorageCBParam.fnCB = CMSServiceHelpers.OTAP_CMS_StorageCallback_Func;
-
-                if (!OTAP_CMS_SubscribeStorageMsg(ref CMSServiceHelpers.struStorageCBParam))
-                {
-                    var errorCode = OTAP_CMS_GetLastError();
-                    _logger.LogError("OTAP_CMS_SubscribeStorageMsg failed, error: {ErrorCode}", errorCode);
-                }
-                else
-                {
-                    _logger.LogInformation("OTAP_CMS_SubscribeStorageMsg succ!");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "订阅存储消息失败");
-            }
-        }
-
-        /// <summary>
         /// 设备注册回调
         /// </summary>
-        public unsafe int FRegisterCallBack(int lUserID, uint dwDataType, IntPtr pOutBuffer, uint dwOutLen, IntPtr pInBuffer, uint dwInLen, IntPtr pUserData)
+        public bool FRegisterCallBack(int lUserID, int dwDataType, IntPtr pOutBuffer, uint dwOutLen, IntPtr pInBuffer, uint dwInLen, IntPtr pUserData)
         {
             try
             {
                 _logger.LogDebug("FRegisterCallBack, dwDataType: {DataType}, lUserID: {UserID}", dwDataType, lUserID);
-
-                OTAP_CMS_DEV_REG_INFO struDevInfo = new();
+                NET_EHOME_DEV_REG_INFO_V12 struDevInfo = new();
                 struDevInfo.Init();
-                struDevInfo.struDevAddr.Init();
-                struDevInfo.struRegAddr.Init();
                 if (pOutBuffer != IntPtr.Zero)
                 {
-                    struDevInfo = (OTAP_CMS_DEV_REG_INFO)Marshal.PtrToStructure(pOutBuffer, typeof(OTAP_CMS_DEV_REG_INFO))!;
+                    struDevInfo = (NET_EHOME_DEV_REG_INFO_V12)Marshal.PtrToStructure(pOutBuffer, typeof(NET_EHOME_DEV_REG_INFO_V12))!;
                 }
 
-                string strDeviceID = Encoding.Default.GetString(struDevInfo.byDeviceID).TrimEnd('\0');
+                string strDeviceID = Encoding.Default.GetString(struDevInfo.struRegInfo.byDeviceID).TrimEnd('\0');
 
                 switch (dwDataType)
                 {
-                    case ENUM_OTAP_CMS_DEV_ON:
-                    case ENUM_OTAP_CMS_ADDRESS_CHANGED:
-                    case ENUM_OTAP_CMS_DEV_DAS_REREGISTER:
+                    case ENUM_DEV_ON:
+                    case ENUM_DEV_ADDRESS_CHANGED:
+                    case ENUM_DEV_DAS_REREGISTER:
                         HandleDeviceOnline(lUserID, strDeviceID, struDevInfo, pInBuffer, dwInLen);
                         break;
-                    case ENUM_OTAP_CMS_DEV_DAS_PINGREQ:
+                    case ENUM_DEV_DAS_PINGREO:
                         HandleDeviceHeartbeat(lUserID, strDeviceID);
                         break;
-                    case ENUM_OTAP_CMS_DEV_OFF:
-                    case ENUM_OTAP_CMS_DEV_SESSIONKEY_ERROR:
-                    case ENUM_OTAP_CMS_DEV_DAS_OTAPKEY_ERROR:
+                    case ENUM_DEV_OFF:
                         HandleDeviceOffline(lUserID, strDeviceID);
                         break;
-                    case ENUM_OTAP_CMS_DEV_AUTH:
+                    case ENUM_DEV_AUTH:
                         HandleDeviceAuth(strDeviceID, pInBuffer);
                         break;
-                    case ENUM_OTAP_CMS_DAS_REQ:
+                    case ENUM_DEV_DAS_REQ:
                         HandleDasRequest(pInBuffer);
                         break;
-                    case ENUM_OTAP_CMS_DEV_SESSIONKEY:
-                        break;
+                    case ENUM_DEV_SESSIONKEY:
+                        HCISUPPublic.NET_EHOME_DEV_SESSIONKEY devSessionkey = new();
+                        devSessionkey.Init();
+                        struDevInfo.struRegInfo.byDeviceID.CopyTo(devSessionkey.sDeviceID, 0);
+                        struDevInfo.struRegInfo.bySessionKey.CopyTo(devSessionkey.sSessionKey, 0);
 
-                    default:
-                        _logger.LogWarning("未处理的设备事件类型: {DataType}, DeviceID: {DeviceID}", dwDataType, strDeviceID);
+                        NET_ECMS_SetDeviceSessionKey(ref devSessionkey);
+                        NET_EALARM_SetDeviceSessionKey(ref devSessionkey);
                         break;
                 }
-
-                return 1;
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "设备注册回调处理异常, UserID: {UserID}, DataType: {DataType}", lUserID, dwDataType);
-                return 0;
+                return false;
             }
         }
 
         /// <summary>
         /// 处理设备上线
         /// </summary>
-        private bool HandleDeviceOnline(int lUserID, string deviceId, OTAP_CMS_DEV_REG_INFO struDevInfo, IntPtr pInBuffer, uint dwInLen)
+        private bool HandleDeviceOnline(int lUserID, string deviceId, NET_EHOME_DEV_REG_INFO_V12 struDevInfo, IntPtr pInBuffer, uint dwInLen)
         {
             try
             {
                 _deviceLogger.LogDeviceInfo(deviceId, "设备上线: UserID: {UserID}", lUserID);
                 // 设置服务器心跳参数
-                var struServerInfo = Marshal.PtrToStructure<OTAP_CMS_SERVER_INFO>(pInBuffer)!;
+                var struServerInfo = Marshal.PtrToStructure<NET_EHOME_SERVER_INFO_V50>(pInBuffer)!;
+                //AMS服务地址和端口下发
+                struServerInfo.dwAlarmServerType = 2;
+                string AlarmServerIP = _config.AlarmServerIP;
+                AlarmServerIP.CopyTo(0, struServerInfo.struTCPAlarmSever.szIP, 0, AlarmServerIP.Length);
+                struServerInfo.struTCPAlarmSever.wPort = short.Parse(_config.AlarmServerPort.ToString());
+                AlarmServerIP.CopyTo(0, struServerInfo.struUDPAlarmSever.szIP, 0, AlarmServerIP.Length);
+                struServerInfo.struUDPAlarmSever.wPort = short.Parse(_config.AlarmServerPort.ToString());
+
                 // CMS 心跳配置
-                struServerInfo.dwKeepAliveSec = (uint)_config.HeartbeatCheckIntervalSeconds;
+                struServerInfo.dwKeepAliveSec = _config.HeartbeatCheckIntervalSeconds;
                 struServerInfo.dwTimeOutCount = 3;
+                //struServerInfo.dwAlarmKeepAliveSec = _config.HeartbeatCheckIntervalSeconds;
+                //struServerInfo.dwAlarmTimeOutCount = 3;
                 Marshal.StructureToPtr(struServerInfo, pInBuffer, false);
 
                 _deviceLogger.LogDeviceInfo(deviceId, "设置心跳参数 - KeepAliveSec: {KeepAlive}, TimeOutCount: {TimeOut}",
-                    struServerInfo.dwKeepAliveSec, struServerInfo.dwTimeOutCount);
+                struServerInfo.dwKeepAliveSec, struServerInfo.dwTimeOutCount);
                 // 异步注册设备，避免阻塞回调
                 Task.Run(async () =>
                 {
@@ -497,13 +473,11 @@ namespace GrpcService.Infrastructure
         {
             try
             {
-                var otapKey = _config.OTAPKey;
-                byte[] byOTAPKey = new byte[32];
-                byte[] byTemp = Encoding.Default.GetBytes(otapKey);
-                Array.Copy(byTemp, byOTAPKey, Math.Min(byTemp.Length, 32));
-
-                Marshal.Copy(byOTAPKey, 0, pInBuffer, 32);
-
+                var ISUPKey = _config.ISUPKey;
+                byte[] byTemp = Encoding.Default.GetBytes(ISUPKey);
+                byte[] byISUPKey = new byte[32];
+                byTemp.CopyTo(byISUPKey, 0);
+                Marshal.Copy(byISUPKey, 0, pInBuffer, 32);
                 _deviceLogger.LogDeviceInfo(deviceId, "设备认证完成");
                 return true;
             }
@@ -521,26 +495,22 @@ namespace GrpcService.Infrastructure
         {
             try
             {
-                OTAP_CMS_DAS_INFO struCmsDasInfo = new();
-                struCmsDasInfo.Init();
-                struCmsDasInfo.struDevAddr.Init();
                 var dasServerIP = _config.DasServerIP;
                 var dasServerPort = _config.DasServerPort;
-
-                dasServerIP.CopyTo(0, struCmsDasInfo.struDevAddr.szIP, 0, dasServerIP.Length);
-                struCmsDasInfo.struDevAddr.wPort = (short)dasServerPort;
-                string strServerID = $"das_{dasServerIP}_{dasServerPort}";
-                strServerID.CopyTo(0, struCmsDasInfo.byServerID, 0, strServerID.Length);
-
-                if (pInBuffer != IntPtr.Zero)
-                {
-                    Marshal.StructureToPtr(struCmsDasInfo, pInBuffer, false);
-
-                    _logger.LogInformation("处理DAS请求: ServerID: {ServerID}, IP: {IP}, Port: {Port}", strServerID, dasServerIP, dasServerPort);
-
-                }
+                string strInBuffer =
+                        "{\n" +
+                             "    \"Type\":\"DAS\",\n" +
+                             "    \"DasInfo\": {\n" +
+                             "        \"Address\":\"" + dasServerIP + "\",\n" +
+                             "        \"Domain\":\"\",\n" +
+                             "        \"ServerID\":\"\",\n" +
+                             "        \"Port\":" + dasServerPort + ",\n" +
+                             "        \"UdpPort\":" + dasServerPort + "\n" +
+                             "    }\n" +
+                             "}";
+                byte[] byInBuffer = Encoding.Default.GetBytes(strInBuffer);
+                Marshal.Copy(byInBuffer, 0, pInBuffer, byInBuffer.Length);
                 return true;
-
             }
             catch (Exception ex)
             {
@@ -552,287 +522,177 @@ namespace GrpcService.Infrastructure
         /// <summary>
         /// 存储回调
         /// </summary>
-        public void FStorageCallback(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData)
-        {
-            try
-            {
-                string deviceId = new string(pParam.szDevID).TrimEnd('\0');
-                _deviceLogger.LogDeviceDebug(deviceId, "存储回调: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
+        //public void FStorageCallback(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData)
+        //{
+        //    try
+        //    {
+        //        string deviceId = new string(pParam.szDevID).TrimEnd('\0');
+        //        _deviceLogger.LogDeviceDebug(deviceId, "存储回调: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
 
-                switch (pParam.dwType)
-                {
-                    case ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY:
-                        HandleStorageUploadQuery(iUserID, ref pParam);
-                        break;
+        //        switch (pParam.dwType)
+        //        {
+        //            case ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY:
+        //                HandleStorageUploadQuery(iUserID, ref pParam);
+        //                break;
 
-                    case ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT:
-                        HandleStorageUploadReport(iUserID, ref pParam);
-                        break;
+        //            case ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT:
+        //                HandleStorageUploadReport(iUserID, ref pParam);
+        //                break;
 
-                    default:
-                        _deviceLogger.LogDeviceWarning(deviceId, "未处理的存储回调类型: {Type}", pParam.dwType);
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "存储回调处理异常: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
-            }
-        }
-
-        /// <summary>
-        /// 处理存储上传查询
-        /// </summary>
-        private void HandleStorageUploadQuery(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam)
-        {
-            var deviceId = new string(pParam.szDevID).TrimEnd('\0');
-            try
-            {
-                if (pParam.pOutBuf == IntPtr.Zero) return;
-
-                var struUpload = (OTAP_CMS_UPLOAD_OBJECT_OUTPUT_PARAM)Marshal.PtrToStructure(pParam.pOutBuf, typeof(OTAP_CMS_UPLOAD_OBJECT_OUTPUT_PARAM))!;
-
-                string childId = new string(pParam.szChildID).TrimEnd('\0');
-                string localIndex = new string(pParam.szLocalIndex).TrimEnd('\0');
-                string resourceType = new string(pParam.szResourceType).TrimEnd('\0');
-
-                _deviceLogger.LogDeviceInfo(deviceId, "存储上传查询 - ChildID: {ChildID}, LocalIndex: {LocalIndex}, ResourceType: {ResourceType}, Sequence: {Sequence}",
-                    childId, localIndex, resourceType, pParam.dwSequence);
-
-                // 构建上传参数
-                var struUploadObjInputParam = BuildUploadInputParam();
-
-                // 响应上传查询
-                var struStorageResponseMsg = new OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM();
-                struStorageResponseMsg.Init();
-                struStorageResponseMsg.szChildID = pParam.szChildID;
-                struStorageResponseMsg.szLocalIndex = pParam.szLocalIndex;
-                struStorageResponseMsg.szResourceType = pParam.szResourceType;
-                struStorageResponseMsg.dwSequence = pParam.dwSequence;
-                struStorageResponseMsg.dwType = ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY_REPLY;
-                IntPtr pInBuf = Marshal.AllocHGlobal(Marshal.SizeOf(struUploadObjInputParam));
-                struStorageResponseMsg.pInBuf = pInBuf;
-                struStorageResponseMsg.dwInBufSize = (uint)Marshal.SizeOf(struUploadObjInputParam);
-
-                try
-                {
-                    Marshal.StructureToPtr(struUploadObjInputParam, pInBuf, false);
-
-                    if (!OTAP_CMS_ResponseStorageMsg(iUserID, ref struStorageResponseMsg))
-                    {
-                        var errorCode = OTAP_CMS_GetLastError();
-                        _deviceLogger.LogDeviceError(deviceId, null, "OTAP_CMS_ResponseStorageMsg UPLOAD_QUERY_REPLY failed, error: {ErrorCode}", errorCode);
-                    }
-                    else
-                    {
-                        _deviceLogger.LogDeviceInfo(deviceId, "OTAP_CMS_ResponseStorageMsg UPLOAD_QUERY_REPLY succ!");
-                    }
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(pInBuf);
-                }
-            }
-            catch (Exception ex)
-            {
-                _deviceLogger.LogDeviceError(deviceId, ex, "处理存储上传查询异常");
-            }
-        }
-
-        /// <summary>
-        /// 处理存储上传报告
-        /// </summary>
-        private void HandleStorageUploadReport(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam)
-        {
-            var deviceId = new string(pParam.szDevID).TrimEnd('\0');
-            try
-            {
-                if (pParam.pOutBuf == IntPtr.Zero) return;
-
-                var struReport = (OTAP_CMS_REPORT_OBJECT_OUTPUT_PARAM)Marshal.PtrToStructure(pParam.pOutBuf, typeof(OTAP_CMS_REPORT_OBJECT_OUTPUT_PARAM))!;
-
-                string childId = new string(pParam.szChildID).TrimEnd('\0');
-                string storageId = new string(struReport.szStorageId).TrimEnd('\0');
-                string bucket = new string(struReport.szBucket).TrimEnd('\0');
-
-                _deviceLogger.LogDeviceInfo(deviceId, "存储上传报告 - ChildID: {ChildID}, StorageID: {StorageID}, Bucket: {Bucket}, Result: {Result}",
-                    childId, storageId, bucket, struReport.dwResult);
-
-                // 响应上传报告
-                var struStorageResponseMsg = new OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM();
-                struStorageResponseMsg.Init();
-                struStorageResponseMsg.szChildID = pParam.szChildID;
-                struStorageResponseMsg.szLocalIndex = pParam.szLocalIndex;
-                struStorageResponseMsg.szResourceType = pParam.szResourceType;
-                struStorageResponseMsg.dwSequence = pParam.dwSequence;
-                struStorageResponseMsg.dwType = ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT_REPLY;
-                struStorageResponseMsg.pInBuf = IntPtr.Zero;
-                struStorageResponseMsg.dwInBufSize = 0;
-
-                if (!OTAP_CMS_ResponseStorageMsg(iUserID, ref struStorageResponseMsg))
-                {
-                    var errorCode = OTAP_CMS_GetLastError();
-                    _deviceLogger.LogDeviceError(deviceId, null, "OTAP_CMS_ResponseStorageMsg UPLOAD_REPORT_REPLY failed, error: {ErrorCode}", errorCode);
-                }
-                else
-                {
-                    _deviceLogger.LogDeviceInfo(deviceId, "OTAP_CMS_ResponseStorageMsg UPLOAD_REPORT_REPLY succ!");
-                }
-            }
-            catch (Exception ex)
-            {
-                _deviceLogger.LogDeviceError(deviceId, ex, "处理存储上传报告异常");
-            }
-        }
-
-        /// <summary>
-        /// 构建上传输入参数
-        /// </summary>
-        private OTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM BuildUploadInputParam()
-        {
-            var struUploadObjInputParam = new OTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM();
-            struUploadObjInputParam.Init();
-
-            // SS存储服务器配置
-            var picServerIP = _config.PicServerIP;
-            var picServerPort = _config.PicServerPort;
-
-            picServerIP.CopyTo(0, struUploadObjInputParam.struAddress.szIP, 0, Math.Min(picServerIP.Length, MaxIpLength));
-            struUploadObjInputParam.struAddress.wPort = (short)picServerPort;
-
-            // 生成存储ID和对象键
-            Guid uuid = Guid.NewGuid();
-            string szStorageId = uuid.ToString();
-            szStorageId.CopyTo(0, struUploadObjInputParam.szStorageId, 0, Math.Min(szStorageId.Length, 127));
-
-            string szObjectKey = uuid.ToString();
-            szObjectKey.CopyTo(0, struUploadObjInputParam.szObjectKey, 0, Math.Min(szObjectKey.Length, 127));
-
-            // 存储配置
-            var storage = _config.Storage;
-            storage.Bucket.CopyTo(0, struUploadObjInputParam.szBucketName, 0, Math.Min(storage.Bucket.Length, MaxBucketLength));
-            storage.AccessKey.CopyTo(0, struUploadObjInputParam.szAccessKey, 0, Math.Min(storage.AccessKey.Length, 127));
-            storage.SecretKey.CopyTo(0, struUploadObjInputParam.szSecretKey, 0, Math.Min(storage.SecretKey.Length, 127));
-            storage.Region.CopyTo(0, struUploadObjInputParam.szRegion, 0, Math.Min(storage.Region.Length, MaxRegionLength));
-
-            struUploadObjInputParam.bHttps = 0; // 使用HTTP
-            struUploadObjInputParam.byEncrypt = 0; // 不加密
-
-            _logger.LogDebug("生成存储参数 - StorageID: {StorageID}, ObjectKey: {ObjectKey}, Bucket: {Bucket}",
-                szStorageId, szObjectKey, storage.Bucket);
-
-            return struUploadObjInputParam;
-        }
+        //            default:
+        //                _deviceLogger.LogDeviceWarning(deviceId, "未处理的存储回调类型: {Type}", pParam.dwType);
+        //                break;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "存储回调处理异常: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
+        //    }
+        //}
 
         /// <summary>
         /// 订阅消息回调
         /// </summary>
-        public bool FSubscribeMsgCallback(int iUserID, ref OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData)
+        //public bool FSubscribeMsgCallback(int iUserID, ref OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam, IntPtr pUserData)
+        //{
+        //    string deviceID = Encoding.UTF8.GetString(pParam.szDevID).TrimEnd('\0');
+        //    try
+        //    {
+        //        _deviceLogger.LogDeviceDebug(deviceID, "订阅消息回调: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
+        //        string szDomain = Encoding.UTF8.GetString(pParam.szDomain).TrimEnd('\0');
+        //        string szIdentifier = Encoding.UTF8.GetString(pParam.szIdentifier).TrimEnd('\0');
+        //        switch (pParam.dwType)
+        //        {
+        //            //case ENUM_OTAP_CMS_ATTRIBUTE_REPORT_MODEL:
+        //            //    HandleAttributeReport(deviceID, szDomain, szIdentifier, pParam);
+        //            //    break;
+
+        //            //case ENUM_OTAP_CMS_SERVICE_QUERY_MODEL:
+        //            //    HandleServiceQuery(deviceID, szDomain, szIdentifier, pParam);
+        //            //    break;
+
+        //            //case ENUM_OTAP_CMS_EVENT_REPORT_MODEL:
+        //            //    HandleEventReport(deviceID, szDomain, szIdentifier, pParam);
+        //            //    break;
+
+        //            default:
+        //                _deviceLogger.LogDeviceWarning(deviceID, "未处理的订阅消息类型: {Type}, Domain: {Domain}, Identifier: {Identifier}",
+        //                    pParam.dwType, szDomain, szIdentifier);
+        //                break;
+        //        }
+
+        //        return true;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _deviceLogger.LogDeviceError(deviceID, ex, "订阅消息回调处理异常: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
+        //        return false;
+        //    }
+        //}
+
+        public bool AlarmMsgCallBack(int iHandle, IntPtr pAlarmMsg, IntPtr pUser)
         {
-            string deviceID = Encoding.UTF8.GetString(pParam.szDevID).TrimEnd('\0');
-            try
+            NET_EHOME_ALARM_MSG struAlarmMsg = new();
+            struAlarmMsg.Init();
+            struAlarmMsg = (NET_EHOME_ALARM_MSG)Marshal.PtrToStructure(pAlarmMsg, typeof(NET_EHOME_ALARM_MSG));
+            _logger.LogInformation($"AlarmType:{struAlarmMsg.dwAlarmType}, dwAlarmInfoLen:{struAlarmMsg.dwAlarmInfoLen}, dwXmlBufLen:{struAlarmMsg.dwXmlBufLen},pUser:{pUser}");
+            if (struAlarmMsg.dwXmlBufLen != 0 & struAlarmMsg.pXmlBuf != IntPtr.Zero)
             {
-                _deviceLogger.LogDeviceDebug(deviceID, "订阅消息回调: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
-                string szDomain = Encoding.UTF8.GetString(pParam.szDomain).TrimEnd('\0');
-                string szIdentifier = Encoding.UTF8.GetString(pParam.szIdentifier).TrimEnd('\0');
-                switch (pParam.dwType)
-                {
-                    case ENUM_OTAP_CMS_ATTRIBUTE_REPORT_MODEL:
-                        HandleAttributeReport(deviceID, szDomain, szIdentifier, pParam);
-                        break;
-
-                    case ENUM_OTAP_CMS_SERVICE_QUERY_MODEL:
-                        HandleServiceQuery(deviceID, szDomain, szIdentifier, pParam);
-                        break;
-
-                    case ENUM_OTAP_CMS_EVENT_REPORT_MODEL:
-                        HandleEventReport(deviceID, szDomain, szIdentifier, pParam);
-                        break;
-
-                    default:
-                        _deviceLogger.LogDeviceWarning(deviceID, "未处理的订阅消息类型: {Type}, Domain: {Domain}, Identifier: {Identifier}",
-                            pParam.dwType, szDomain, szIdentifier);
-                        break;
-                }
-
-                return true;
+                byte[] byXmlData = new byte[struAlarmMsg.dwXmlBufLen];
+                Marshal.Copy(struAlarmMsg.pXmlBuf, byXmlData, 0, (int)struAlarmMsg.dwXmlBufLen);
             }
-            catch (Exception ex)
+            ProcessAlarmData(struAlarmMsg.dwAlarmType, struAlarmMsg.pAlarmInfo, struAlarmMsg.dwAlarmInfoLen, struAlarmMsg.pXmlBuf, struAlarmMsg.dwXmlBufLen);
+            return true;
+        }
+
+        public void ProcessAlarmData(uint dwAlarmType, IntPtr pAlarmInfo, uint dwAlarmInfoLen, IntPtr pXmlBuf, uint dwXmlBufLen)
+        {
+            switch (dwAlarmType)
             {
-                _deviceLogger.LogDeviceError(deviceID, ex, "订阅消息回调处理异常: UserID: {UserID}, Type: {Type}", iUserID, pParam.dwType);
-                return false;
+                case EHOME_ISAPI_ALARM://上报事件
+                    NET_EHOME_ALARM_ISAPI_INFO struISAPIAlarm = new();
+                    if (pAlarmInfo != IntPtr.Zero)
+                        struISAPIAlarm = (NET_EHOME_ALARM_ISAPI_INFO)Marshal.PtrToStructure(pAlarmInfo, typeof(NET_EHOME_ALARM_ISAPI_INFO));
+
+                    if (struISAPIAlarm.pAlarmData != IntPtr.Zero & struISAPIAlarm.dwAlarmDataLen != 0)
+                    {
+
+                        byte[] alarmData = new byte[struISAPIAlarm.dwAlarmDataLen];
+                        Marshal.Copy(struISAPIAlarm.pAlarmData, alarmData, 0, (int)struISAPIAlarm.dwAlarmDataLen);
+                        string strAlarmData = Encoding.UTF8.GetString(alarmData);
+                        _logger.LogInformation("strAlarmData:" + strAlarmData);
+                        HandleEventReport(strAlarmData);
+                    }
+                    break;
             }
         }
 
-        /// <summary>
-        /// 处理属性上报
-        /// </summary>
-        private void HandleAttributeReport(string deviceID, string domain, string identifier, OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
-        {
-            try
-            {
-                if (pParam.pOutBuf == IntPtr.Zero || pParam.dwOutBufSize == 0) return;
 
-                byte[] byOutbuffer = new byte[pParam.dwOutBufSize];
-                Marshal.Copy(pParam.pOutBuf, byOutbuffer, 0, (int)pParam.dwOutBufSize);
-                string strOutbuffer = Encoding.UTF8.GetString(byOutbuffer).TrimEnd('\0');
+        ///// <summary>
+        ///// 处理属性上报
+        ///// </summary>
+        //private void HandleAttributeReport(string deviceID, string domain, string identifier, OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
+        //{
+        //    try
+        //    {
+        //        if (pParam.pOutBuf == IntPtr.Zero || pParam.dwOutBufSize == 0) return;
 
-                _deviceLogger.LogDeviceInfo(deviceID, "属性上报 - Domain: {Domain}, Identifier: {Identifier}, Data: {Data}",
-                    domain, identifier, strOutbuffer.Truncate(200));
-            }
-            catch (Exception ex)
-            {
-                _deviceLogger.LogDeviceError(deviceID, ex, "处理属性上报异常");
-            }
-        }
+        //        byte[] byOutbuffer = new byte[pParam.dwOutBufSize];
+        //        Marshal.Copy(pParam.pOutBuf, byOutbuffer, 0, (int)pParam.dwOutBufSize);
+        //        string strOutbuffer = Encoding.UTF8.GetString(byOutbuffer).TrimEnd('\0');
 
-        /// <summary>
-        /// 处理服务查询
-        /// </summary>
-        private void HandleServiceQuery(string deviceID, string domain, string identifier, OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
-        {
-            try
-            {
-                if (pParam.pOutBuf == IntPtr.Zero || pParam.dwOutBufSize == 0) return;
+        //        _deviceLogger.LogDeviceInfo(deviceID, "属性上报 - Domain: {Domain}, Identifier: {Identifier}, Data: {Data}",
+        //            domain, identifier, strOutbuffer.Truncate(200));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _deviceLogger.LogDeviceError(deviceID, ex, "处理属性上报异常");
+        //    }
+        //}
 
-                byte[] byOutbuffer = new byte[pParam.dwOutBufSize];
-                Marshal.Copy(pParam.pOutBuf, byOutbuffer, 0, (int)pParam.dwOutBufSize);
-                string strOutbuffer = Encoding.UTF8.GetString(byOutbuffer).TrimEnd('\0');
+        ///// <summary>
+        ///// 处理服务查询
+        ///// </summary>
+        //private void HandleServiceQuery(string deviceID, string domain, string identifier, OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
+        //{
+        //    try
+        //    {
+        //        if (pParam.pOutBuf == IntPtr.Zero || pParam.dwOutBufSize == 0) return;
 
-                _deviceLogger.LogDeviceInfo(deviceID, "服务查询 - Domain: {Domain}, Identifier: {Identifier}, Data: {Data}",
-                    domain, identifier, strOutbuffer.Truncate(200));
-            }
-            catch (Exception ex)
-            {
-                _deviceLogger.LogDeviceError(deviceID, ex, "处理服务查询异常");
-            }
-        }
+        //        byte[] byOutbuffer = new byte[pParam.dwOutBufSize];
+        //        Marshal.Copy(pParam.pOutBuf, byOutbuffer, 0, (int)pParam.dwOutBufSize);
+        //        string strOutbuffer = Encoding.UTF8.GetString(byOutbuffer).TrimEnd('\0');
+
+        //        _deviceLogger.LogDeviceInfo(deviceID, "服务查询 - Domain: {Domain}, Identifier: {Identifier}, Data: {Data}",
+        //            domain, identifier, strOutbuffer.Truncate(200));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _deviceLogger.LogDeviceError(deviceID, ex, "处理服务查询异常");
+        //    }
+        //}
 
         /// <summary>
         /// 处理事件报告
         /// </summary>
-        private void HandleEventReport(string deviceID, string domain, string identifier, OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam)
+        private async Task HandleEventReport(string strAlarmInfo)
         {
             try
             {
-                if (pParam.pOutBuf == IntPtr.Zero || pParam.dwOutBufSize == 0) return;
-
-                var struAlarmMsg = (OTAP_AMS_ALARM_MSG)Marshal.PtrToStructure(pParam.pOutBuf, typeof(OTAP_AMS_ALARM_MSG))!;
-
-                string strAlarmInfoBuf = "";
-                if (struAlarmMsg.pAlarmInfoBuf != IntPtr.Zero && struAlarmMsg.dwAlarmInfoLen > 0)
+                AlarmMsgInfo alarmMsgInfo = JsonSerializer.Deserialize<AlarmMsgInfo>(strAlarmInfo);
+                DeviceEvent deviceEvent = new()
                 {
-                    byte[] byAlarmInfoBuf = new byte[struAlarmMsg.dwAlarmInfoLen];
-                    Marshal.Copy(struAlarmMsg.pAlarmInfoBuf, byAlarmInfoBuf, 0, (int)struAlarmMsg.dwAlarmInfoLen);
-                    strAlarmInfoBuf = Encoding.UTF8.GetString(byAlarmInfoBuf).TrimEnd('\0');
-                }
+                    EventType = "EventReport",
+                    DeviceId = alarmMsgInfo.DeviceID,
+                    Payload = strAlarmInfo
+                };
+                await _deviceManager.PublishDeviceEvent(deviceEvent);
 
-                _deviceLogger.LogDeviceInfo(struAlarmMsg.szDeviceID, "事件报告 - Domain: {Domain}, Identifier: {Identifier}, Topic: {Topic}, AlarmInfo: {AlarmInfo}",
-                    domain, identifier, struAlarmMsg.szAlarmTopic, strAlarmInfoBuf.Truncate(200));
+                _deviceLogger.LogDeviceInfo(alarmMsgInfo.DeviceID, "事件报告 -AlarmInfo: {AlarmInfo}", strAlarmInfo);
             }
             catch (Exception ex)
             {
-                _deviceLogger.LogDeviceError(deviceID, ex, "处理事件报告异常");
+                _deviceLogger.LogDeviceError(strAlarmInfo, ex, "处理事件报告异常");
             }
         }
 
@@ -845,14 +705,14 @@ namespace GrpcService.Infrastructure
             {
                 if (CMSServiceHelpers.CmsListenHandle > 0)
                 {
-                    if (!OTAP_CMS_StopListen(CMSServiceHelpers.CmsListenHandle))
+                    if (!NET_ECMS_StopListen(CMSServiceHelpers.CmsListenHandle))
                     {
-                        var errorCode = OTAP_CMS_GetLastError();
-                        _logger.LogError("OTAP_CMS_StopListen failed, error: {ErrorCode}", errorCode);
+                        var errorCode = NET_ECMS_GetLastError();
+                        _logger.LogError("NET_ECMS_StopListen failed, error: {ErrorCode}", errorCode);
                     }
                     else
                     {
-                        _logger.LogInformation("OTAP_CMS_StopListen 成功, Handle: {Handle}", CMSServiceHelpers.CmsListenHandle);
+                        _logger.LogInformation("NET_ECMS_StopListen 成功, Handle: {Handle}", CMSServiceHelpers.CmsListenHandle);
                         CMSServiceHelpers.CmsListenHandle = -1;
                     }
                 }
@@ -877,10 +737,8 @@ namespace GrpcService.Infrastructure
                 // Windows平台库文件映射
                 var windowsLibraries = new Dictionary<string, string>
                 {
-                    { "libcrypto", "libcrypto-3-x64.dll" },
-                    { "libssl", "libssl-3-x64.dll" },
-                    { "libiconv2", "libiconv2.dll" },
-                    { "libz", "zlib1.dll" }
+                    { "libeay32", "libeay32.dll" },
+                    { "ssleay32", "ssleay32.dll" },
                 };
 
                 if (windowsLibraries.TryGetValue(libraryName, out string? fileName))
@@ -893,10 +751,8 @@ namespace GrpcService.Infrastructure
                 // Linux平台库文件映射
                 var linuxLibraries = new Dictionary<string, string>
                 {
-                    { "libcrypto", "libcrypto.so.3" },
-                    { "libssl", "libssl.so.3" },
-                    { "libiconv2", "libiconv2.so" },
-                    { "libz", "libz.so" }
+                    { "libeay32", "libcrypto.so" },
+                    { "ssleay32", "libssl.so" },
                 };
 
                 if (linuxLibraries.TryGetValue(libraryName, out string? fileName))
@@ -917,10 +773,8 @@ namespace GrpcService.Infrastructure
         {
             var libraries = new[]
             {
-                ("libcrypto", ENUM_NET_ECMS_Init_CFG_LIBEAY_PATH),
-                ("libssl", ENUM_OTAP_CMS_INIT_CFG_SSLEAY_PATH),
-                ("libiconv2", ENUM_OTAP_CMS_INIT_CFG_LIBICONV_PATH),
-                ("libz", ENUM_OTAP_CMS_INIT_CFG_ZLIB_PATH)
+                ("libeay32", NET_EHOME_CMS_INIT_CFG_LIBEAY_PATH),
+                ("ssleay32", NET_EHOME_CMS_INIT_CFG_SSLEAY_PATH),
             };
             foreach (var (libName, configType) in libraries)
             {
@@ -934,11 +788,15 @@ namespace GrpcService.Infrastructure
                         _logger.LogWarning("库文件不存在: {LibPath}", libPath);
                         continue;
                     }
-
-                    if (!OTAP_CMS_SetSDKInitCfg(configType, Marshal.StringToHGlobalAnsi(libPath)))
+                    if (!NET_ECMS_SetSDKInitCfg(configType, Marshal.StringToHGlobalAnsi(libPath)))
                     {
-                        var errorCode = OTAP_CMS_GetLastError();
-                        _logger.LogError("设置库路径失败 {LibName}: {LibPath}, 错误码: {ErrorCode}", libName, libPath, errorCode);
+                        var errorCode = NET_ECMS_GetLastError();
+                        _logger.LogError("中心服务设置库路径失败 {LibName}: {LibPath}, 错误码: {ErrorCode}", libName, libPath, errorCode);
+                    }
+                    if (!NET_EALARM_SetSDKInitCfg(configType, Marshal.StringToHGlobalAnsi(libPath)))
+                    {
+                        var errorCode = NET_ECMS_GetLastError();
+                        _logger.LogError("监听服务设置库路径失败 {LibName}: {LibPath}, 错误码: {ErrorCode}", libName, libPath, errorCode);
                     }
                     else
                     {

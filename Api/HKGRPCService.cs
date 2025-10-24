@@ -13,24 +13,24 @@ namespace GrpcService.Api
     public class HkDeviceService(
         ILogger<HkDeviceService> logger,
         DeviceManager deviceManager,
-        IGrpcRequestQueueService requestQueue,
-        IDeviceLoggerService deviceLogger,
-        SubscribeEvent subscribeEvent,
+        //IGrpcRequestQueueService requestQueue,
+        //IDeviceLoggerService deviceLogger,
 
         RedisService redis
         ) : HikDeviceService.HikDeviceServiceBase
     {
         private readonly ILogger<HkDeviceService> _logger = logger;
         private readonly DeviceManager _deviceManager = deviceManager;
-        private readonly IGrpcRequestQueueService _requestQueue = requestQueue;
-        private readonly IDeviceLoggerService _deviceLogger = deviceLogger;
-        private readonly SubscribeEvent _bus = subscribeEvent;
+        //private readonly IGrpcRequestQueueService _requestQueue = requestQueue;
+        //private readonly IDeviceLoggerService _deviceLogger = deviceLogger;
         private readonly RedisService _redis = redis;
-
         /// <summary>
-        /// 订阅推送事件（保持原实现）
+        /// 订阅推送事件
         /// </summary>
-        public override async Task SubscribeAllEvents(Empty request, IServerStreamWriter<DeviceEvent> responseStream, ServerCallContext context)
+        public override async Task SubscribeAllEvents(
+    Empty request,
+    IServerStreamWriter<DeviceEvent> responseStream,
+    ServerCallContext context)
         {
             var clientId = context.GetHttpContext()?.Connection?.Id ?? Guid.NewGuid().ToString();
             var channel = $"device:events:{clientId}";
@@ -39,30 +39,26 @@ namespace GrpcService.Api
             var consumerName = $"consumer-{clientId}";
 
             _logger.LogInformation("客户端 {ClientId} 开始订阅事件频道 {Channel}", clientId, channel);
+
             try
             {
                 try
                 {
-                    await _redis.SetStringAsync(streamKey, consumerGroup, null, true);
-                    //await _redis.Subscribe(channel, async (ch, msg) =>
-                    //{
-                    //    var deviceEvent = JsonSerializer.Deserialize<DeviceEvent>(msg!);
-                    //    if (deviceEvent != null)
-                    //    {
-                    //        await responseStream.WriteAsync(deviceEvent);
-                    //    }
-                    //});
-
+                    await _redis.StreamCreateConsumerGroupAsync(
+                        streamKey,
+                        consumerGroup,
+                        id: "0-0",
+                        createIfNotExists: true
+                    );
+                    _logger.LogInformation("创建 Redis Consumer Group {Group} 成功", consumerGroup);
                 }
                 catch (RedisServerException ex) when (ex.Message.Contains("BUSYGROUP"))
                 {
-                    _logger.LogWarning(ex, "Redis Consumer Group 已存在");
+                    _logger.LogWarning("Redis Consumer Group {Group} 已存在", consumerGroup);
                 }
-
-                // 读取未处理的历史消息
                 await _deviceManager.ProcessPendingMessages(streamKey, consumerGroup, consumerName, responseStream, context.CancellationToken);
 
-                // 持续监听新消息
+                // 持续监听新消息（XREADGROUP）
                 while (!context.CancellationToken.IsCancellationRequested)
                 {
                     try
@@ -71,24 +67,26 @@ namespace GrpcService.Api
                             streamKey,
                             consumerGroup,
                             consumerName,
-                            ">", // 只读取新消息
+                            ">",     // 只读取新消息
                             count: 10,
-                            noAck: false);
+                            noAck: false
+                        );
 
-                        if (results.Count != 0)
+                        if (results.Count > 0)
                         {
                             foreach (var result in results)
                             {
-                                //foreach (var entry in result.Values)
-                                //{
-                                //    await _deviceManager.ProcessStreamEntry(entry, responseStream, streamKey, consumerGroup);
-                                //}
-                                await _deviceManager.ProcessStreamEntry(result, responseStream, streamKey, consumerGroup);
+                                await _deviceManager.ProcessStreamEntry(
+                                    result,
+                                    responseStream,
+                                    streamKey,
+                                    consumerGroup
+                                );
                             }
                         }
                         else
                         {
-                            await Task.Delay(100, context.CancellationToken); // 无新消息时稍作等待
+                            await Task.Delay(100, context.CancellationToken); // 无消息稍作等待
                         }
                     }
                     catch (OperationCanceledException)
@@ -97,8 +95,8 @@ namespace GrpcService.Api
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "读取Redis Stream消息失败");
-                        await Task.Delay(1000, context.CancellationToken); // 错误时等待更长时间
+                        _logger.LogError(ex, "读取 Redis Stream 消息失败");
+                        await Task.Delay(1000, context.CancellationToken); // 出错时退避等待
                     }
                 }
             }
@@ -119,12 +117,13 @@ namespace GrpcService.Api
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "清理Redis消费者失败");
+                    _logger.LogWarning(ex, "清理 Redis 消费者失败");
                 }
 
                 _logger.LogInformation("客户端 {ClientId} 已取消订阅", clientId);
             }
         }
+
         /// <summary>
         /// 获取服务信息（健康检查）
         /// </summary>
@@ -151,8 +150,16 @@ namespace GrpcService.Api
         }
 
         /// <summary>
-        /// 请注意：ExecuteIsapi 的泛型签名与原项目一致（返回 Task<T>），
-        /// 我们把对它的调用放到 ExecuteIsapiWithConcurrency 中。
+        /// 删除设备回调
+        /// </summary>
+        public override Task<RegisterResponse> DeleteDevice(RegisterRequest req, ServerCallContext ctx)
+        {
+            _deviceManager.DeleteDeviceEvent(req.DeviceId);
+            return Task.FromResult(new RegisterResponse { Success = true, DeviceId = req.DeviceId });
+        }
+
+        /// <summary>
+        /// 获取设备信息
         /// </summary>
         public override Task<GetDeviceInfoResponse> GetDeviceInfo(GetDeviceInfoRequest req, ServerCallContext ctx)
         {
@@ -190,8 +197,9 @@ namespace GrpcService.Api
         {
             return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
+                string path = Path.Combine("conf", "Acs", "AcsRemoteControlDoor.xml");
                 return await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/RemoteControl/door/1", "PUT",
-                     ConfigFileUtil.GetReqBodyFromTemplate("\\conf\\Acs\\AcsRemoteControlDoor.xml", new Dictionary<string, object> { { "cmd", "open" } }),
+                     ConfigFileUtil.GetReqBodyFromTemplate(path, new Dictionary<string, object> { { "cmd", "open" } }),
                      (ok, body) => new OpenDoorResponse { Success = ok, Message = ok ? "OK" : body, ErrorCode = ok ? "0" : "1001", DeviceId = req.DeviceId });
             })!;
         }
@@ -214,10 +222,11 @@ namespace GrpcService.Api
         public override Task<SyncTimeResponse> SyncTime(SyncTimeRequest request, ServerCallContext context)
         {
             var currentTime = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ssK");
+            string path = Path.Combine("conf", "Basic", "SystemTime.xml");
             return _deviceManager.ExecuteIsapiWithConcurrency(request.DeviceId, async () =>
             {
                 return await _deviceManager.ExecuteIsapi(request.DeviceId, "PUT /ISAPI/System/time", "PUT",
-                    ConfigFileUtil.GetReqBodyFromTemplate("\\conf\\Basic\\SystemTime.xml", new Dictionary<string, object> { { "localTime", currentTime } }),
+                    ConfigFileUtil.GetReqBodyFromTemplate(path, new Dictionary<string, object> { { "localTime", currentTime } }),
                     (ok, body) => new SyncTimeResponse
                     {
                         Success = ok,
@@ -235,7 +244,7 @@ namespace GrpcService.Api
         {
             return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                var _ = await _deviceManager.Cms_SetConfigDevAsync(req.DeviceId, HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM.OTAP_ENUM_OTAP_CMS_GET_MODEL_ATTR, "InfoMgr", "DeviceVersion", "");
+                var _ = await _deviceManager.Cms_SetConfigDevAsync(req.DeviceId,  "InfoMgr", "DeviceVersion", "");
                 return new GetVersionResponse { Success = true, Message = "OK", ErrorCode = "0" };
             })!;
         }
@@ -254,7 +263,7 @@ namespace GrpcService.Api
         }
 
         /// <summary>
-        /// UpdateWhite (添加/更新人员、图片、卡号) - 保留原流程，并在每次 ExecuteIsapi 调用前后做并发控制
+        /// UpdateWhite (添加/更新人员、图片、卡号)
         /// </summary>
         public override Task<UpdateWhiteResponse> UpdateWhite(UpdateWhiteRequest req, ServerCallContext ctx)
         {
@@ -262,7 +271,6 @@ namespace GrpcService.Api
             {
                 OperationResponse whiteResult = new();
                 UpdateWhiteResponse response = new();
-
                 // 1. 添加人员
                 await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserInfo/SetUp?format=json", "PUT", JsonSerializer.Serialize(new SetUpPersonRequest
                 {
@@ -278,6 +286,14 @@ namespace GrpcService.Api
                             EndTime = req.Users.EndOn,
                             Enable = true
                         },
+                        DoorRight = "1",
+                        RightPlan = [
+                            new RightPlan
+                            {
+                                DoorNo=1,
+                                PlanTemplateNo=req.Users.PlanTemplateNo
+                            }
+                            ]
                     }
                 }),
                    (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!);
@@ -304,8 +320,7 @@ namespace GrpcService.Api
                         FaceLibType = "blackFD",
                         FDID = "1",
                         FPID = req.Users.EmployeeNo,
-                        FaceType = "normalFace",
-                        SaveFacePic = true
+                        FaceType = "normalFace"
                     }),
                        (ok, body) => whiteResult = JsonSerializer.Deserialize<OperationResponse>(body)!);
 
@@ -478,13 +493,44 @@ namespace GrpcService.Api
         {
             return _deviceManager.ExecuteIsapiWithConcurrency(req.DeviceId, async () =>
             {
-                return await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserRightWeekPlanCfg/1?format=json", "PUT",
+                var response = new UpdateTimezoneResponse();
+                // 1. 添加周模版
+                response = await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserRightWeekPlanCfg/" + req.TimezoneGroup.WeekPlanNo + " ?format=json", "PUT",
                    JsonSerializer.Serialize(req.TimezoneGroup),
                     (ok, body) =>
                     {
                         var response = JsonSerializer.Deserialize<OperationResponse>(body)!;
-                        return new UpdateTimezoneResponse { Success = response.StatusCode == 1, Message = response.StatusString, ErrorCode = response.ErrorMsg, DeviceId = req.DeviceId };
+                        return new UpdateTimezoneResponse
+                        {
+                            Success = response.StatusCode == 1,
+                            Message = response.StatusCode == 1 ? response.StatusString : response.ErrorMsg,
+                            ErrorCode = response.StatusCode == 1 ? "0" : response.ErrorMsg,
+                            DeviceId = req.DeviceId
+                        };
                     });
+                // 2. 设置计划模版
+                if (response.Success)
+                {
+                    response = await _deviceManager.ExecuteIsapi(req.DeviceId, "PUT /ISAPI/AccessControl/UserRightPlanTemplate/" + req.TimezoneGroup.PlanTemplateNo + "?format=json", "PUT",
+                        JsonSerializer.Serialize(new RightPlanTemplate()
+                        {
+                            Enable = true,
+                            TemplateName = req.TimezoneGroup.PlanTemplateName,
+                            WeekPlanNo = req.TimezoneGroup.WeekPlanNo
+                        }),
+                        (ok, body) =>
+                        {
+                            var response = JsonSerializer.Deserialize<OperationResponse>(body)!;
+                            return new UpdateTimezoneResponse
+                            {
+                                Success = response.StatusCode == 1,
+                                Message = response.StatusCode == 1 ? response.StatusString : response.ErrorMsg,
+                                ErrorCode = response.StatusCode == 1 ? "0" : response.ErrorMsg,
+                                DeviceId = req.DeviceId
+                            };
+                        });
+                }
+                return response;
             })!;
         }
 

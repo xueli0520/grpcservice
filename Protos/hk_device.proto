@@ -15,6 +15,8 @@ service HikDeviceService {
   rpc GetServerInfo(google.protobuf.Empty) returns (ServerInfoResponse);
   //设备注册回调（完成）
   rpc Register(RegisterRequest) returns (RegisterResponse);
+  //删除设备
+  rpc DeleteDevice(RegisterRequest) returns (RegisterResponse);
   // 获取设备信息（完成）
   rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
   // 开门（完成）
@@ -29,11 +31,11 @@ service HikDeviceService {
   rpc SetDoorMode(SetDoorModeRequest) returns (SetDoorModeResponse);
   // 获取设备状态
   rpc GetDeviceStatus(GetDeviceStatusRequest) returns (GetDeviceStatusResponse);
-  // 人员管理相关(完成)
+  // 人员管理相关
   rpc UpdateWhite(UpdateWhiteRequest) returns (UpdateWhiteResponse);
   rpc DeleteWhite(DeleteWhiteRequest) returns (DeleteWhiteResponse);
   rpc PageWhite(PageWhiteRequest) returns (PageWhiteResponse);
-  // 时段管理相关（完成）
+  // 时段管理相关
   rpc UpdateTimezone(UpdateTimezoneRequest) returns (UpdateTimezoneResponse);
   // 门禁模板相关
   rpc SetDoorTemplate(DoorTemplateRequest) returns (DoorTemplateResponse);
@@ -219,6 +221,7 @@ message WhiteUserInfo {
 	string devPassword=8;	
 	string carNumber=9;
 	string picPath=10;
+  string planTemplateNo=11;
 }
 // 更新白名单响应
 message UpdateWhiteResponse {
@@ -276,6 +279,10 @@ message UpdateTimezoneRequest {
 }
 message TimezoneGroup {
   UserRightWeekPlanCfg user_right_week_plan_cfg = 1; 
+  int32 plan_template_no=2;
+  string plan_template_name=3;
+  bool enable = 4;
+  int32 week_plan_no=5;
 }
 
 message UserRightWeekPlanCfg {

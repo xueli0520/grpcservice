@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using GrpcService.HKSDK;
 using GrpcService.Models;
 using StackExchange.Redis;
@@ -6,12 +7,13 @@ using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using static GrpcService.HKSDK.HCISUPCMS;
 
 namespace GrpcService.Infrastructure
 {
     public class DeviceManager(
         ILogger<DeviceManager> logger,
-        DeviceLoggerService deviceLogger, SubscribeEvent subscribeEvent, TenantConcurrencyManager tenantConcurrency,
+        DeviceLoggerService deviceLogger, TenantConcurrencyManager tenantConcurrency,
         RedisService redis)
     {
         private readonly ILogger<DeviceManager> _logger = logger;
@@ -19,16 +21,15 @@ namespace GrpcService.Infrastructure
         private readonly RedisService _redis = redis;
 
         private readonly ConcurrentDictionary<string, DeviceConnection> _devices = new();
-        private readonly SubscribeEvent _subscribeEvent = subscribeEvent;
         private readonly TenantConcurrencyManager _tenantConcurrency = tenantConcurrency;
 
         public async Task<(bool Success, string Message, string DeviceId)> RegisterDevice(
-            int lUserID, HCOTAPCMS.OTAP_CMS_DEV_REG_INFO struDevInfo)
+            int lUserID, NET_EHOME_DEV_REG_INFO_V12 struDevInfo)
         {
-            string deviceId = Encoding.Default.GetString(struDevInfo.byDeviceID).TrimEnd('\0');
+            string deviceId = Encoding.Default.GetString(struDevInfo.struRegInfo.byDeviceID).TrimEnd('\0');
             try
             {
-                var device = new DeviceConnection(deviceId, new string(struDevInfo.struDevAddr.szIP).TrimEnd('\0'), struDevInfo.struDevAddr.wPort, lUserID, _deviceLogger);
+                var device = new DeviceConnection(deviceId, new string(struDevInfo.struRegInfo.struDevAdd.szIP).TrimEnd('\0'), struDevInfo.struRegInfo.struDevAdd.wPort, lUserID, _deviceLogger);
                 RemoveDevice(deviceId);
                 if (_devices.TryAdd(deviceId, device))
                 {
@@ -46,7 +47,7 @@ namespace GrpcService.Infrastructure
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "设备注册失败: {DeviceId}", struDevInfo.byDeviceID);
+                _logger.LogError(ex, "设备注册失败: {DeviceId}", struDevInfo.struRegInfo.byDeviceID);
                 return (false, ex.Message, deviceId);
             }
             return (true, "设备注册成功", deviceId);
@@ -55,35 +56,45 @@ namespace GrpcService.Infrastructure
         // 统一的事件推送方法
         public async Task PublishDeviceEvent(DeviceEvent deviceEvent)
         {
-            var streamKey = "device:events:stream";
-            var eventData = JsonSerializer.Serialize(deviceEvent);
-
-            await _redis.StreamCreateConsumerGroupAsync(streamKey, "data", eventData);
-            _logger.LogDebug("设备事件已发布到Stream: {EventType}", deviceEvent.EventType);
+            await _redis.PublishStreamAsync(
+                   [
+                new NameValueEntry("EventType", deviceEvent.EventType),
+                new NameValueEntry("Payload", JsonSerializer.Serialize(deviceEvent))
+                   ]
+               );
         }
         public void RegisterEvent(string deviceId) => _devices[deviceId].Register = true;
+
+        public void DeleteDeviceEvent(string deviceId) => _devices[deviceId].Register = false;
 
         public async Task<bool> UpdateDeviceHeartbeat(string deviceId, int userId)
         {
             if (_devices.TryGetValue(deviceId, out var device))
             {
-                if (device?.UserId == userId && device.IsConnected == true)
+                if (device?.DeviceId == deviceId && device.IsConnected == true)
                 {
                     device.LastHeartbeat = DateTime.Now;
                     _logger.LogDebug("更新设备心跳: {DeviceId}", deviceId);
                     if (!device.Register)
-                        await PublishDeviceEvent(new DeviceEvent { EventType = "DeviceRegistered", DeviceId = deviceId, Payload = JsonSerializer.Serialize(device) });
-                    var evt = new DeviceEvent
+                        await PublishDeviceEvent(new DeviceEvent
+                        {
+                            EventType = "DeviceRegistered",
+                            DeviceId = deviceId,
+                            Payload = JsonSerializer.Serialize(device)
+                        });
+                    else
                     {
-                        DeviceId = deviceId,
-                        EventType = "HeartBeat",
-                        Payload = device.DeviceIP,
-                    };
-                    _subscribeEvent.Publish(evt);
+                        var evt = new DeviceEvent
+                        {
+                            DeviceId = deviceId,
+                            EventType = "HeartBeat",
+                            Payload = device.DeviceIP,
+                        };
+                        await PublishDeviceEvent(evt);
+                    }
                     return true;
                 }
             }
-
             _logger.LogWarning("更新心跳失败，设备不存在或UserId不匹配: {DeviceId}, UserId: {UserId}", deviceId, userId);
             return false;
         }
@@ -94,9 +105,7 @@ namespace GrpcService.Infrastructure
             {
                 _logger.LogInformation("设备连接已断开: {DeviceId}", deviceId);
                 _deviceLogger.LogDeviceInfo(deviceId, "设备连接已断开");
-
                 _ = UpdateDeviceStatusAsync(deviceId, "disconnected");
-
                 return true;
             }
             return false;
@@ -134,7 +143,7 @@ namespace GrpcService.Infrastructure
                     consumerGroup,
                     consumerName,
                     "0", // 从最早的未确认消息开始
-                    count: 100,
+                    count: 50,
                     noAck: false);
 
                 foreach (var result in pendingResults)
@@ -156,33 +165,31 @@ namespace GrpcService.Infrastructure
 
         public async Task ProcessStreamEntry(StreamEntry entry, IServerStreamWriter<DeviceEvent> responseStream, string streamKey, string consumerGroup)
         {
+            if (entry.Values.Length == 0)
+                return;
+
             try
             {
-                // 从Stream条目中获取事件数据
-                var eventDataField = entry.Values.FirstOrDefault(x => x.Name == "data");
-                if (eventDataField.Value.HasValue)
+                var eventType = entry.Values.FirstOrDefault(v => v.Name == "EventType").Value;
+                var payload = entry.Values.FirstOrDefault(v => v.Name == "Payload").Value;
+
+                if (!string.IsNullOrEmpty(payload))
                 {
-                    var deviceEvent = JsonSerializer.Deserialize<DeviceEvent>(eventDataField.Value!);
+                    var deviceEvent = JsonSerializer.Deserialize<DeviceEvent>(payload!);
                     if (deviceEvent != null)
                     {
-                        // 向客户端发送事件
                         await responseStream.WriteAsync(deviceEvent);
-
-                        // 确认消息已处理
-                        await _redis.AcknowledgeStreamMessage(streamKey, consumerGroup, entry.Id!);
                     }
                 }
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogError(ex, "反序列化设备事件失败，消息ID: {MessageId}", entry.Id);
-                // 确认错误消息，避免重复处理
+
+                // 处理完成后 ACK
                 await _redis.AcknowledgeStreamMessage(streamKey, consumerGroup, entry.Id!);
+                _logger.LogDebug("消息 {Id} 已确认 (ACK)，类型 {EventType}", entry.Id, eventType);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理Stream条目失败，消息ID: {MessageId}", entry.Id);
-                // 不确认消息，允许重试
+                _logger.LogError(ex, "处理消息 {Id} 失败", entry.Id);
+                // ❌ 不 ACK，留在 Pending 里，之后可以重试
             }
         }
 
@@ -193,7 +200,7 @@ namespace GrpcService.Infrastructure
             {
                 return Task.FromResult(map(false, "设备未连接") as T);
             }
-            HCOTAPCMS.OTAP_CMS_ISAPI_PT_PARAM struParam = new();
+            NET_EHOME_PTXML_PARAM struParam = new();
             struParam.Init();
 
             //输入ISAPI协议命令
@@ -215,16 +222,16 @@ namespace GrpcService.Infrastructure
             struParam.pOutBuffer = Marshal.AllocHGlobal(20 * 1024);    //输出缓冲区，如果接口调用失败提示错误码43，需要增大输出缓冲区
             struParam.dwOutSize = 20 * 1024;
 
-            if (!HCOTAPCMS.OTAP_CMS_ISAPIPassThrough((int)device.UserId, ref struParam))
+            if (!NET_ECMS_ISAPIPassThrough(device.UserId, ref struParam))
             {
-                _logger.LogError($"{deviceId},{url} OTAP_CMS_ISAPIPassThrough failed, error:" + HCOTAPCMS.OTAP_CMS_GetLastError());
-                return Task.FromResult(map(false, $"指令下发失败{HCOTAPCMS.OTAP_CMS_GetLastError()}"));
+                _logger.LogError($"{deviceId},{url} NET_ECMS_ISAPIPassThrough failed, error:" + NET_ECMS_GetLastError());
+                return Task.FromResult(map(false, $"指令下发失败{NET_ECMS_GetLastError()}"));
             }
             // 读取输出
-            var returned = struParam.dwReturnedLen > 0 ? (int)struParam.dwReturnedLen : (int)struParam.dwOutSize;
-            var outBytes = new byte[returned];
-            Marshal.Copy(struParam.pOutBuffer, outBytes, 0, outBytes.Length);
-            var outText = Encoding.UTF8.GetString(outBytes).TrimEnd('\0');
+            uint iXMSize = struParam.dwOutSize;
+            byte[] managedArray = new byte[iXMSize];
+            Marshal.Copy(struParam.pOutBuffer, managedArray, 0, (int)iXMSize);
+            string strOutBuffer = Encoding.UTF8.GetString(managedArray);
 
             // 释放
             Marshal.FreeHGlobal(struParam.pRequestUrl);
@@ -232,11 +239,11 @@ namespace GrpcService.Infrastructure
             Marshal.FreeHGlobal(struParam.pCondBuffer);
             if (inXml != null) Marshal.FreeHGlobal(struParam.pInBuffer);
 
-            _logger.LogInformation("返回结果: {OutText}", outText);
-            return Task.FromResult(map(true, outText));
+            _logger.LogInformation("返回结果: {OutText}", strOutBuffer);
+            return Task.FromResult(map(true, strOutBuffer));
         }
         public Task<(bool Success, string Message)> Cms_SetConfigDevAsync(string deviceId,
-    HCOTAPCMS.OTAP_CMS_CONFIG_DEV_ENUM enumMsg, string sDomain, string sIdentifier, string inputData)
+   string sDomain, string sIdentifier, string inputData)
         {
             if (!_devices.TryGetValue(deviceId, out var device) || device.IsConnected != true)
             {
@@ -244,58 +251,33 @@ namespace GrpcService.Infrastructure
             }
             try
             {
-                HCOTAPCMS.OTAP_CMS_CONFIG_DEV_PARAM struConfigParam = new();
-                struConfigParam.Init();
-                //子设备ID,设备本身固定为global
-                string sChildID = "global";
-                sChildID.CopyTo(0, struConfigParam.szChildID, 0, sChildID.Length);
-                //设备本地资源标识,设备本身固定为0
-                string sLocalIndex = "0";
-                sLocalIndex.CopyTo(0, struConfigParam.szLocalIndex, 0, sLocalIndex.Length);
-                //设备资源类型,设备本身固定为global
-                string sResourceType = "global";
-                sResourceType.CopyTo(0, struConfigParam.szResourceType, 0, sResourceType.Length);
-                //功能领域，不同功能对应不同领域，详见OTAP协议文档
-                sDomain.CopyTo(0, struConfigParam.szDomain, 0, sDomain.Length);
-                //功能标识/属性标识，不同功能对应不同领域，详见OTAP协议文档
-                sIdentifier.CopyTo(0, struConfigParam.szIdentifier, 0, sIdentifier.Length);
+                NET_EHOME_VERSION_INFO struDevInfo = new();
+                struDevInfo.Init();
+                NET_EHOME_CONFIG struCfg = new();
+                struCfg.Init();
 
-                if (!string.IsNullOrEmpty(inputData))
-                {
-                    byte[] byInputParam = Encoding.UTF8.GetBytes(inputData);
-                    int iXMLInputLen = byInputParam.Length;
-                    struConfigParam.pInBuf = Marshal.AllocHGlobal(iXMLInputLen);
-                    Marshal.Copy(byInputParam, 0, struConfigParam.pInBuf, iXMLInputLen);
-                    struConfigParam.dwInBufSize = (uint)byInputParam.Length;
-                }
+                struDevInfo.dwSize = Marshal.SizeOf(struDevInfo);
 
-                struConfigParam.pOutBuf = Marshal.AllocHGlobal(20 * 1024);    //输出缓冲区，如果接口调用失败提示错误码43，需要增大输出缓冲区
-                struConfigParam.dwOutBufSize = 20 * 1024;
+                IntPtr ptrDevInfo = Marshal.AllocHGlobal(struDevInfo.dwSize);
+                Marshal.StructureToPtr(struDevInfo, ptrDevInfo, false);
 
-                bool success = HCOTAPCMS.OTAP_CMS_ConfigDev((int)device.UserId, enumMsg, ref struConfigParam);
+                struCfg.pOutBuf = ptrDevInfo;
+                struCfg.dwOutSize = (uint)struDevInfo.dwSize;
+                uint dwConfigSize = (uint)Marshal.SizeOf(struCfg);
+                IntPtr ptrCfg = Marshal.AllocHGlobal(Marshal.SizeOf(struCfg));
+                bool success = NET_ECMS_GetDevConfig((int)device.UserId, NET_EHOME_GET_DEVICE_INFO, ref struCfg, dwConfigSize);
                 string outText;
-
                 if (success)
                 {
-                    var returned = (int)struConfigParam.dwOutBufSize;
-                    var outBufferPtr = struConfigParam.pOutBuf;
-                    var outBytes = new byte[returned];
-                    Marshal.Copy(outBufferPtr, outBytes, 0, outBytes.Length);
-                    outText = Encoding.UTF8.GetString(outBytes).TrimEnd('\0');
-                    _logger.LogInformation($"调用成功:{outText}");
+                    struDevInfo = (NET_EHOME_VERSION_INFO)Marshal.PtrToStructure(ptrDevInfo, typeof(NET_EHOME_VERSION_INFO));
+                    outText = struDevInfo.ToString();
+                    _logger.LogInformation($"调用成功:{struDevInfo}");
                 }
                 else
                 {
-                    outText = $"调用失败: {HCOTAPCMS.OTAP_CMS_GetLastError()}";
+                    outText = $"调用失败: {NET_ECMS_GetLastError()}";
                     _logger.LogError(outText);
                 }
-
-                // 释放内存
-                if (struConfigParam.pInBuf != IntPtr.Zero)
-                    Marshal.FreeHGlobal(struConfigParam.pInBuf);
-                if (struConfigParam.pOutBuf != IntPtr.Zero)
-                    Marshal.FreeHGlobal(struConfigParam.pOutBuf);
-
                 return Task.FromResult((success, outText));
             }
             catch (Exception ex)

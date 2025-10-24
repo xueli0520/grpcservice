@@ -23,12 +23,12 @@ namespace GrpcService.Models
     public class HikDeviceConfiguration
     {
         public string CmsServerIP { get; set; } = "0.0.0.0";
-        public int CmsServerPort { get; set; } = 8000;
-        public string DasServerIP { get; set; } = "127.0.0.1";
+        public int CmsServerPort { get; set; } = 16886;
+        public string AlarmServerIP { get; set; } = "0.0.0.0";
+        public int AlarmServerPort { get; set; } = 16887;
+        public string DasServerIP { get; set; } = "0.0.0.0";    
         public int DasServerPort { get; set; } = 8001;
-        public string PicServerIP { get; set; } = "127.0.0.1";
-        public int PicServerPort { get; set; } = 9000;
-        public string OTAPKey { get; set; } = "DefaultOTAPKey123456";
+        public string ISUPKey { get; set; } = "Admin123";
         public StorageConfiguration Storage { get; set; } = new();
         public int HeartbeatTimeoutSeconds { get; set; } = 120;
         public int HeartbeatCheckIntervalSeconds { get; set; } = 60;
@@ -58,5 +58,9 @@ namespace GrpcService.Models
         public string RequestType { get; set; } = "";
         public Func<TRequest, CancellationToken, Task<TResponse>> Handler { get; set; } = null!;
     }
-   
+
+    public class UploadLog
+    {
+
+    }
 }

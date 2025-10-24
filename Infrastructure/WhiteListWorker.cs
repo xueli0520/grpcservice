@@ -6,11 +6,11 @@ namespace GrpcService.Infrastructure;
 public class WhiteListWorker(
     ILogger<WhiteListWorker> logger,
     IConnectionMultiplexer redis,
-    TenantAwareDeviceManager deviceManager) : BackgroundService
+    TenantAwareDeviceManager tenantManager) : BackgroundService
 {
     private readonly ILogger<WhiteListWorker> _logger = logger;
     private readonly IConnectionMultiplexer _redis = redis;
-    private readonly TenantAwareDeviceManager _deviceManager = deviceManager;
+    private readonly TenantAwareDeviceManager _tenantManager = tenantManager;
 
     private const string QueueKey = "whitelist:queue"; // 正常任务队列
     private const string FailedQueueKey = "whitelist:failed"; // 死信队列
@@ -54,7 +54,7 @@ public class WhiteListWorker(
             switch (task.Type)
             {
                 case "UpdateWhite":
-                    var updateSuccess = await _deviceManager.UpdateWhiteAsync(task.TenantId, task.DeviceId, task.CardNo, task.PersonName);
+                    var updateSuccess = await _tenantManager.UpdateWhiteAsync(task.TenantId, task.DeviceId, task.CardNo, task.PersonName);
                     if (updateSuccess)
                     {
                         await PublishWhiteListEventAsync(task, "UpdateWhiteResult", success: true);
@@ -67,7 +67,7 @@ public class WhiteListWorker(
                     break;
 
                 case "DeleteWhite":
-                    var deleteSuccess = await _deviceManager.DeleteWhiteAsync(task.TenantId, task.DeviceId, task.CardNo);
+                    var deleteSuccess = await _tenantManager.DeleteWhiteAsync(task.TenantId, task.DeviceId, task.CardNo);
                     if (deleteSuccess)
                     {
                         await PublishWhiteListEventAsync(task, "DeleteWhiteResult", success: true);
@@ -80,7 +80,7 @@ public class WhiteListWorker(
                     break;
 
                 case "PageWhite":
-                    var whiteList = await _deviceManager.PageWhiteAsync(task.TenantId, task.DeviceId, task.PageIndex, task.PageSize);
+                    var whiteList = await _tenantManager.PageWhiteAsync(task.TenantId, task.DeviceId, task.PageIndex, task.PageSize);
                     await PublishWhiteListEventAsync(task, "PageWhiteResult", success: true, users: whiteList);
                     break;
 

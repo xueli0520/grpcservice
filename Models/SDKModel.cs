@@ -1685,4 +1685,67 @@ namespace GrpcService.Models
         /// </summary>
         public string EndTime { get; set; } = null!;
     }
+
+    public class RightPlanTemplate
+    {
+        public bool Enable { get; set; }
+        public string? TemplateName { get; set; }
+        public int WeekPlanNo { get; set; }
+    }
+    public class AlarmMsgInfo
+    {
+        [JsonPropertyName("ipAddress")]
+        public string? IpAddress { get; set; }
+        [JsonPropertyName("dateTime")]
+        public string? DateTime { get; set; }
+        [JsonPropertyName("activePostCount")]
+        public int ActivePostCount { get; set; }
+        [JsonPropertyName("eventType")]
+        public string? EventType { get; set; }
+        [JsonPropertyName("eventState")]
+        public string? EventState { get; set; }
+        [JsonPropertyName("eventDescription")]
+        public string? EventDescription { get; set; }
+        [JsonPropertyName("deviceID")]
+        public string? DeviceID { get; set; }
+        [JsonPropertyName("AccessControllerEvent")]
+        public AccessControllerEvent? AccessControllerEvent { get; set; }
+
+    }
+    public class AccessControllerEvent
+    {
+        [JsonPropertyName("deviceName")]
+        public string? DeviceName { get; set; }
+        [JsonPropertyName("majorEventType")]
+        public int MajorEventType { get; set; }
+        [JsonPropertyName("subEventType")]
+        public int SubEventType { get; set; }
+        [JsonPropertyName("reportChannel")]
+        public int ReportChannel { get; set; }
+        [JsonPropertyName("cardReaderKind")]
+        public int CardReaderKind { get; set; }
+        [JsonPropertyName("cardReaderNo")]
+        public int CardReaderNo { get; set; }
+        [JsonPropertyName("verifyNo")]
+        public int VerifyNo { get; set; }
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+        [JsonPropertyName("employeeNoString")]
+        public string? EmployeeNoString { get; set; }
+        [JsonPropertyName("serialNo")]
+        public int SerialNo { get; set; }
+        [JsonPropertyName("currentVerifyMode")]
+        public string? CurrentVerifyMode { get; set; }
+        [JsonPropertyName("attendanceStatus")]
+        public string? AttendanceStatus { get; set; }
+        [JsonPropertyName("statusValue")]
+        public int StatusValue { get; set; }
+        [JsonPropertyName("currentEvent")]
+        public bool CurrentEvent { get; set; }
+        [JsonPropertyName("frontSerialNo")]
+        public int FrontSerialNo { get; set; }
+        [JsonPropertyName("picturesNumber")]
+        public int PicturesNumber { get; set; }
+    }
+
 }

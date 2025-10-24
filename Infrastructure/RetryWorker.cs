@@ -6,11 +6,11 @@ namespace GrpcService.Infrastructure;
 public class RetryWorker(
     ILogger<RetryWorker> logger,
     IConnectionMultiplexer redis,
-    TenantAwareDeviceManager deviceManager) : BackgroundService
+    TenantAwareDeviceManager tenantManager) : BackgroundService
 {
     private readonly ILogger<RetryWorker> _logger = logger;
     private readonly IConnectionMultiplexer _redis = redis;
-    private readonly TenantAwareDeviceManager _deviceManager = deviceManager;
+    private readonly TenantAwareDeviceManager _tenantManager = tenantManager;
 
     private const string FailedQueueKey = "whitelist:failed";  // 死信队列
     private const int MaxRetryCount = 3;  // 最大重试次数
@@ -70,11 +70,11 @@ public class RetryWorker(
             switch (task.Type)
             {
                 case "UpdateWhite":
-                    success = await _deviceManager.UpdateWhiteAsync(task.TenantId, task.DeviceId, task.CardNo, task.PersonName);
+                    success = await _tenantManager.UpdateWhiteAsync(task.TenantId, task.DeviceId, task.CardNo, task.PersonName);
                     break;
 
                 case "DeleteWhite":
-                    success = await _deviceManager.DeleteWhiteAsync(task.TenantId, task.DeviceId, task.CardNo);
+                    success = await _tenantManager.DeleteWhiteAsync(task.TenantId, task.DeviceId, task.CardNo);
                     break;
 
                 case "PageWhite":

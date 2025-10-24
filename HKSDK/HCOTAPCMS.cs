@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 
 namespace GrpcService.HKSDK
 {
-    public class HCOTAPCMS
+    public class HCISUPCMS
     {
-        private const string WINDOWS_DLL = "HCOTAPCMS.dll";
-        private const string LINUX_SO = "libHCOTAPCMS.so";
-        private static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        private const string WINDOWS_DLL = "Libs/Windows/HCISUPCMS.dll";
+        private const string LINUX_SO = "Libs/Linux/libHCISUPCMS.so";
+        public static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
         /// <summary>
@@ -38,1021 +38,895 @@ namespace GrpcService.HKSDK
         #region windows SDK
         // CN: 初始化CMS组件。
         // EN: Initialize CMS component.
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_Init", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_Init_Windows();
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_Init", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_Init_Windows();
         // CN: 反初始化CMS组件
         // EN: Deinitialize CMS component
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_Fini", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_Fini_Windows();
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_Fini", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_Fini_Windows();
 
         // CN: 获取CMS组件错误码
         // EN: Get CMS component error code
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_GetLastError", CallingConvention = CallingConvention.StdCall)]
-        public static extern uint OTAP_CMS_GetLastError_Windows();
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_GetLastError", CallingConvention = CallingConvention.StdCall)]
+        public static extern uint NET_ECMS_GetLastError_Windows();
 
         // CN: 获取CMS组件版本
         // EN: Get CMS component version
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_GetBuildVersion", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_GetBuildVersion_Windows();
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_GetBuildVersion", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_GetBuildVersion_Windows();
 
         // CN: CMS启动监听
         // EN: CMS start listening
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StartListen", CallingConvention = CallingConvention.StdCall)]
-        public static extern int OTAP_CMS_StartListen_Windows(ref OTAP_CMS_LISTEN_PARAM lpListenParam);
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_StartListen", CallingConvention = CallingConvention.StdCall)]
+        public static extern int NET_ECMS_StartListen_Windows(ref NET_EHOME_CMS_LISTEN_PARAM lpListenParam);
 
         // CN: CMS停止监听
         // EN: CMS stop listening
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StopListen", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_StopListen_Windows(int iListenHandle);
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_StopListen", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_StopListen_Windows(int iListenHandle);
 
         // CN: CMS强制注销设备
         // EN: CMS force logout device
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ForceLogout", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_ForceLogout_Windows();
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_ForceLogout", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_ForceLogout_Windows();
 
-        // CN: CMS获得公私钥
-        // EN: CMS get private and public keys
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_GetPriPubKey", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_GetPriPubKey_Windows(int iCryptoType, ref OTAP_CMS_PRI_PUB_KEY pECDHKey);
-
-        // CN: 获得SessionID
-        // EN: Get SessionID
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_GetSevrSessionId", CallingConvention = CallingConvention.StdCall)]
-        public static extern uint OTAP_CMS_GetSevrSessionId_Windows(nint pServSessionIDBuf, uint dwBufLen);
 
         // CN: 设置本地日志
         // EN: Set local log
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SetLogToFile", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_SetLogToFile_Windows(int iLogLevel, string pLogDir, bool dwAutoDel);
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_SetLogToFile", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_SetLogToFile_Windows(int iLogLevel, string pLogDir, bool dwAutoDel);
 
-        // CN: CMS通知设备开始实时取流
-        // EN: CMS notify device to start live streaming
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StartLiveStreaming", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_StartLiveStreaming_Windows(int iUserID, int enumStreamingMode, nint pParamIn, nint pParamOut);
 
-        // CN: CMS参数配置
-        // EN: CMS parameter configuration
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ConfigDev", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_ConfigDev_Windows(int iUserID, OTAP_CMS_CONFIG_DEV_ENUM enumMsg, ref OTAP_CMS_CONFIG_DEV_PARAM pParam);
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_SetSDKInitCfg", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_SetSDKInitCfg_Windows(Int32 enumType, IntPtr lpInBuff);
 
-        // CN: 开启语音对讲
-        // EN: Start voice intercom
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StartVoice", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_StartVoice_Windows(int iUserID, ref OTAP_CMS_STARTVOICE_IN pVoiceIn, out OTAP_CMS_STARTVOICE_OUT pVoiceOut);
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_SetSDKLocalCfg", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_SetSDKLocalCfg_Windows(int enumType, nint lpOutBuff);
 
-        // CN: 停止语音对讲
-        // EN: Stop voice intercom
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StopVoice", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_StopVoice_Windows(int iUserID, ref OTAP_CMS_STOPVOICE_PARAM pStopParam);
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_ISAPIPassThrough", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_ISAPIPassThrough_Windows(Int32 lUserID, ref NET_EHOME_PTXML_PARAM lpParam);
 
-        // CN: ISAPI透传
-        // EN: ISAPI pass-through
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ISAPIPassThrough", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_ISAPIPassThrough_Windows(int iUserID, ref OTAP_CMS_ISAPI_PT_PARAM pParam);
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_SetDeviceSessionKey", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_SetDeviceSessionKey_Windows(ref HCISUPPublic.NET_EHOME_DEV_SESSIONKEY pDeviceKey);
 
-        // CN: CMS订阅消息
-        // EN: CMS subscribe message
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SubscribeMsg", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_SubscribeMsg_Windows(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, nint pParam);
+        [DllImport(WINDOWS_DLL, EntryPoint = "NET_ECMS_SetDeviceSessionKey", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_GetDevConfig_Windows(int lUserID, uint dwCommand, ref NET_EHOME_CONFIG lpConfig, uint dwConfigSize);
 
-        // CN: 开启OTAP协议设备报警上报
-        // EN: Start OTAP protocol device alarm reporting
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_StartAlarm", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_StartAlarm_Windows(int iUserID, ref OTAP_CMS_STARTALARM_PARAM pParam);
-
-        // CN: 配置简单存储订阅消息回调
-        // EN: Configure simple storage subscription message callback
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SubscribeStorageMsg", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_SubscribeStorageMsg_Windows(ref OTAP_CMS_STORAGE_SUBSCRIBE_CB_PARAM pParam);
-
-        // CN: 响应简单存储消息.
-        // EN: Respond to simple storage message.
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ResponseStorageMsg", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_ResponseStorageMsg_Windows(int iUserID, ref OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM pParam);
-
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SetSDKInitCfg", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_SetSDKInitCfg_Windows(int enumType, nint lpInBuff);
-
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_SetSDKLocalCfg", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_SetSDKLocalCfg_Windows(int enumType, nint lpOutBuff);
-
-        [DllImport(WINDOWS_DLL, EntryPoint = "OTAP_CMS_ResponseMsg", CallingConvention = CallingConvention.StdCall)]
-        public static extern bool OTAP_CMS_ResponseMsg_Windows(int lUserID, int enumMsg, ref OTAP_CMS_RESPONSE_MSG_PARAM pParam);
         #endregion
         #region Linux SDK
         // CN: 初始化CMS组件。
         // EN: Initialize CMS component.
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_Init", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_Init_Linux();
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SetSDKLocalCfg", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_SetSDKLocalCfg_Linux(int enumType, nint lpOutBuff);
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_Init", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool NET_ECMS_Init_Linux();
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_SetSDKLocalCfg", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool NET_ECMS_SetSDKLocalCfg_Linux(int enumType, nint lpOutBuff);
         // CN: 反初始化CMS组件
         // EN: Deinitialize CMS component
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_Fini", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_Fini_Linux();
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_Fini", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool NET_ECMS_Fini_Linux();
 
         // CN: 获取CMS组件错误码
         // EN: Get CMS component error code
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_GetLastError", CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint OTAP_CMS_GetLastError_Linux();
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_GetLastError", CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint NET_ECMS_GetLastError_Linux();
 
         // CN: 获取CMS组件版本
         // EN: Get CMS component version
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_GetBuildVersion", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_GetBuildVersion_Linux();
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_GetBuildVersion", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool NET_ECMS_GetBuildVersion_Linux();
 
         // CN: CMS启动监听
         // EN: CMS start listening
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StartListen", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int OTAP_CMS_StartListen_Linux(ref OTAP_CMS_LISTEN_PARAM lpListenParam);
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_StartListen", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int NET_ECMS_StartListen_Linux(ref NET_EHOME_CMS_LISTEN_PARAM lpListenParam);
 
         // CN: CMS停止监听
         // EN: CMS stop listening
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StopListen", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_StopListen_Linux(int iListenHandle);
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_StopListen", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool NET_ECMS_StopListen_Linux(int iListenHandle);
 
         // CN: CMS强制注销设备
         // EN: CMS force logout device
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ForceLogout", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_ForceLogout_Linux();
-
-        // CN: CMS获得公私钥
-        // EN: CMS get private and public keys
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_GetPriPubKey", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_GetPriPubKey_Linux(int iCryptoType, ref OTAP_CMS_PRI_PUB_KEY pECDHKey);
-
-        // CN: 获得SessionID
-        // EN: Get SessionID
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_GetSevrSessionId", CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint OTAP_CMS_GetSevrSessionId_Linux(nint pServSessionIDBuf, uint dwBufLen);
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_ForceLogout", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool NET_ECMS_ForceLogout_Linux();
 
         // CN: 设置本地日志
         // EN: Set local log
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SetLogToFile", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_SetLogToFile_Linux(int iLogLevel, string pLogDir, bool dwAutoDel);
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_SetLogToFile", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool NET_ECMS_SetLogToFile_Linux(int iLogLevel, string pLogDir, bool dwAutoDel);
 
-        // CN: CMS通知设备开始实时取流
-        // EN: CMS notify device to start live streaming
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StartLiveStreaming", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_StartLiveStreaming_Linux(int iUserID, int enumStreamingMode, nint pParamIn, nint pParamOut);
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_SetSDKInitCfg", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool NET_ECMS_SetSDKInitCfg_Linux(Int32 enumType, IntPtr lpInBuff);
 
-        // CN: CMS参数配置
-        // EN: CMS parameter configuration
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ConfigDev", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_ConfigDev_Linux(int iUserID, OTAP_CMS_CONFIG_DEV_ENUM enumMsg, ref OTAP_CMS_CONFIG_DEV_PARAM pParam);
-
-        // CN: 开启语音对讲
-        // EN: Start voice intercom
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StartVoice", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_StartVoice_Linux(int iUserID, ref OTAP_CMS_STARTVOICE_IN pVoiceIn, out OTAP_CMS_STARTVOICE_OUT pVoiceOut);
-
-        // CN: 停止语音对讲
-        // EN: Stop voice intercom
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StopVoice", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_StopVoice_Linux(int iUserID, ref OTAP_CMS_STOPVOICE_PARAM pStopParam);
-
-        // CN: ISAPI透传
-        // EN: ISAPI pass-through
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ISAPIPassThrough", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_ISAPIPassThrough_Linux(int iUserID, ref OTAP_CMS_ISAPI_PT_PARAM pParam);
-
-        // CN: CMS订阅消息
-        // EN: CMS subscribe message
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SubscribeMsg", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_SubscribeMsg_Linux(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, nint pParam);
-
-        // CN: 开启OTAP协议设备报警上报
-        // EN: Start OTAP protocol device alarm reporting
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_StartAlarm", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_StartAlarm_Linux(int iUserID, ref OTAP_CMS_STARTALARM_PARAM pParam);
-
-        // CN: 配置简单存储订阅消息回调
-        // EN: Configure simple storage subscription message callback
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SubscribeStorageMsg", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_SubscribeStorageMsg_Linux(ref OTAP_CMS_STORAGE_SUBSCRIBE_CB_PARAM pParam);
-
-        // CN: 响应简单存储消息.
-        // EN: Respond to simple storage message.
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ResponseStorageMsg", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_ResponseStorageMsg_Linux(int iUserID, ref OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM pParam);
-
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_SetSDKInitCfg", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_SetSDKInitCfg_Linux(int enumType, nint lpInBuff);
-
-        [DllImport(LINUX_SO, EntryPoint = "OTAP_CMS_ResponseMsg", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool OTAP_CMS_ResponseMsg_Linux(int lUserID, int enumMsg, ref OTAP_CMS_RESPONSE_MSG_PARAM pParam);
-
-        public delegate int OTAP_CMS_RegisterCallback(int iUserID, uint dwDataType, nint pOutBuffer, uint dwOutLen, nint pInBuffer, uint dwInLen, nint pUserData);
-
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_ISAPIPassThrough", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_ISAPIPassThrough_Linux(Int32 lUserID, ref NET_EHOME_PTXML_PARAM lpParam);
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_SetDeviceSessionKey", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_SetDeviceSessionKey_Linux(ref HCISUPPublic.NET_EHOME_DEV_SESSIONKEY pDeviceKey);
+        [DllImport(LINUX_SO, EntryPoint = "NET_ECMS_SetDeviceSessionKey", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool NET_ECMS_GetDevConfig_Linux(int lUserID, uint dwCommand, ref NET_EHOME_CONFIG lpConfig, uint dwConfigSize);
         #endregion
 
         #region 跨平台
         // CN: 初始化CMS组件。
         // EN: Initialize CMS component.
-        public static bool OTAP_CMS_Init()
+        public static bool NET_ECMS_Init()
         {
-            return IsWindows ? OTAP_CMS_Init_Windows() : OTAP_CMS_Init_Linux();
+            return IsWindows ? NET_ECMS_Init_Windows() : NET_ECMS_Init_Linux();
         }
 
-        public static bool OTAP_CMS_SetSDKLocalCfg(int enumType, nint lpInBuff)
+        public static bool NET_ECMS_SetSDKLocalCfg(int enumType, nint lpInBuff)
         {
-            return IsWindows ? OTAP_CMS_SetSDKLocalCfg_Windows(enumType, lpInBuff) : OTAP_CMS_SetSDKLocalCfg_Linux(enumType, lpInBuff);
+            return IsWindows ? NET_ECMS_SetSDKLocalCfg_Windows(enumType, lpInBuff) : NET_ECMS_SetSDKLocalCfg_Linux(enumType, lpInBuff);
         }
 
         // CN: 反初始化CMS组件
         // EN: Deinitialize CMS component
-        public static bool OTAP_CMS_Fini()
+        public static bool NET_ECMS_Fini()
         {
-            return IsWindows ? OTAP_CMS_Fini_Windows() : OTAP_CMS_Fini_Linux();
+            return IsWindows ? NET_ECMS_Fini_Windows() : NET_ECMS_Fini_Linux();
         }
 
         // CN: 获取CMS组件错误码
         // EN: Get CMS component error code
-        public static uint OTAP_CMS_GetLastError()
+        public static uint NET_ECMS_GetLastError()
         {
-            return IsWindows ? OTAP_CMS_GetLastError_Windows() : OTAP_CMS_GetLastError_Linux();
+            return IsWindows ? NET_ECMS_GetLastError_Windows() : NET_ECMS_GetLastError_Linux();
         }
 
         // CN: 获取CMS组件版本
         // EN: Get CMS component version
-        public static bool OTAP_CMS_GetBuildVersion()
+        public static bool NET_ECMS_GetBuildVersion()
         {
-            return IsWindows ? OTAP_CMS_GetBuildVersion_Windows() : OTAP_CMS_GetBuildVersion_Linux();
+            return IsWindows ? NET_ECMS_GetBuildVersion_Windows() : NET_ECMS_GetBuildVersion_Linux();
         }
 
         // CN: CMS启动监听
         // EN: CMS start listening
-        public static int OTAP_CMS_StartListen(ref OTAP_CMS_LISTEN_PARAM lpListenParam)
+        public static int NET_ECMS_StartListen(ref NET_EHOME_CMS_LISTEN_PARAM lpListenParam)
         {
-            return IsWindows ? OTAP_CMS_StartListen_Windows(ref lpListenParam) : OTAP_CMS_StartListen_Linux(ref lpListenParam);
+            return IsWindows ? NET_ECMS_StartListen_Windows(ref lpListenParam) : NET_ECMS_StartListen_Linux(ref lpListenParam);
         }
 
         // CN: CMS停止监听
         // EN: CMS stop listening
-        public static bool OTAP_CMS_StopListen(int iListenHandle)
+        public static bool NET_ECMS_StopListen(int iListenHandle)
         {
-            return IsWindows ? OTAP_CMS_StopListen_Windows(iListenHandle) : OTAP_CMS_StopListen_Linux(iListenHandle);
+            return IsWindows ? NET_ECMS_StopListen_Windows(iListenHandle) : NET_ECMS_StopListen_Linux(iListenHandle);
         }
 
         // CN: CMS强制注销设备
         // EN: CMS force logout device
-        public static bool OTAP_CMS_ForceLogout()
+        public static bool NET_ECMS_ForceLogout()
         {
-            return IsWindows ? OTAP_CMS_ForceLogout_Windows() : OTAP_CMS_ForceLogout_Linux();
-        }
-
-        // CN: CMS获得公私钥
-        // EN: CMS get private and public keys
-        public static bool OTAP_CMS_GetPriPubKey(int iCryptoType, ref OTAP_CMS_PRI_PUB_KEY pECDHKey)
-        {
-            return IsWindows ? OTAP_CMS_GetPriPubKey_Windows(iCryptoType, ref pECDHKey) : OTAP_CMS_GetPriPubKey_Linux(iCryptoType, ref pECDHKey);
-        }
-
-        // CN: 获得SessionID
-        // EN: Get SessionID
-        public static uint OTAP_CMS_GetSevrSessionId(nint pServSessionIDBuf, uint dwBufLen)
-        {
-            return IsWindows ? OTAP_CMS_GetSevrSessionId_Windows(pServSessionIDBuf, dwBufLen) : OTAP_CMS_GetSevrSessionId_Linux(pServSessionIDBuf, dwBufLen);
+            return IsWindows ? NET_ECMS_ForceLogout_Windows() : NET_ECMS_ForceLogout_Linux();
         }
 
         // CN: 设置本地日志
         // EN: Set local log
-        public static bool OTAP_CMS_SetLogToFile(int iLogLevel, string pLogDir, bool dwAutoDel)
+        public static bool NET_ECMS_SetLogToFile(int iLogLevel, string pLogDir, bool dwAutoDel)
         {
-            return IsWindows ? OTAP_CMS_SetLogToFile_Windows(iLogLevel, pLogDir, dwAutoDel) : OTAP_CMS_SetLogToFile_Linux(iLogLevel, pLogDir, dwAutoDel);
+            return IsWindows ? NET_ECMS_SetLogToFile_Windows(iLogLevel, pLogDir, dwAutoDel) : NET_ECMS_SetLogToFile_Linux(iLogLevel, pLogDir, dwAutoDel);
         }
 
-        // CN: CMS通知设备开始实时取流
-        // EN: CMS notify device to start live streaming
-        public static bool OTAP_CMS_StartLiveStreaming(int iUserID, int enumStreamingMode, nint pParamIn, nint pParamOut)
+
+        public static bool NET_ECMS_SetSDKInitCfg(Int32 enumType, IntPtr lpInBuff)
         {
-            return IsWindows ? OTAP_CMS_StartLiveStreaming_Windows(iUserID, enumStreamingMode, pParamIn, pParamOut) : OTAP_CMS_StartLiveStreaming_Linux(iUserID, enumStreamingMode, pParamIn, pParamOut);
+            return IsWindows ? NET_ECMS_SetSDKInitCfg_Windows(enumType, lpInBuff) : NET_ECMS_SetSDKInitCfg_Linux(enumType, lpInBuff);
         }
 
-        // CN: CMS参数配置
-        // EN: CMS parameter configuration
-        public static bool OTAP_CMS_ConfigDev(int iUserID, OTAP_CMS_CONFIG_DEV_ENUM enumMsg, ref OTAP_CMS_CONFIG_DEV_PARAM pParam)
+        public static bool NET_ECMS_ISAPIPassThrough(Int32 lUserID, ref NET_EHOME_PTXML_PARAM lpParam)
         {
-            return IsWindows ? OTAP_CMS_ConfigDev_Windows(iUserID, enumMsg, ref pParam) : OTAP_CMS_ConfigDev_Linux(iUserID, enumMsg, ref pParam);
+            return IsWindows ? NET_ECMS_ISAPIPassThrough_Windows(lUserID, ref lpParam) : NET_ECMS_ISAPIPassThrough_Linux(lUserID, ref lpParam);
+        }
+        public static bool NET_ECMS_SetDeviceSessionKey(ref HCISUPPublic.NET_EHOME_DEV_SESSIONKEY pDeviceKey)
+        {
+            return IsWindows ? NET_ECMS_SetDeviceSessionKey_Windows(ref pDeviceKey) : NET_ECMS_SetDeviceSessionKey_Linux(ref pDeviceKey);
         }
 
-        // CN: 开启语音对讲
-        // EN: Start voice intercom
-        public static bool OTAP_CMS_StartVoice(int iUserID, ref OTAP_CMS_STARTVOICE_IN pVoiceIn, out OTAP_CMS_STARTVOICE_OUT pVoiceOut)
+        public static bool NET_ECMS_GetDevConfig(int lUserID, uint dwCommand, ref NET_EHOME_CONFIG lpConfig, uint dwConfigSize)
         {
-            return IsWindows ? OTAP_CMS_StartVoice_Windows(iUserID, ref pVoiceIn, out pVoiceOut) : OTAP_CMS_StartVoice_Linux(iUserID, ref pVoiceIn, out pVoiceOut);
+            return IsWindows ? NET_ECMS_GetDevConfig_Windows(lUserID, dwCommand, ref lpConfig, dwConfigSize) : NET_ECMS_GetDevConfig_Linux(lUserID, dwCommand, ref lpConfig, dwConfigSize);
         }
 
-        // CN: 停止语音对讲
-        // EN: Stop voice intercom
-        public static bool OTAP_CMS_StopVoice(int iUserID, ref OTAP_CMS_STOPVOICE_PARAM pStopParam)
-        {
-            return IsWindows ? OTAP_CMS_StopVoice_Windows(iUserID, ref pStopParam) : OTAP_CMS_StopVoice_Linux(iUserID, ref pStopParam);
-        }
-
-        // CN: ISAPI透传
-        // EN: ISAPI pass-through
-        public static bool OTAP_CMS_ISAPIPassThrough(int iUserID, ref OTAP_CMS_ISAPI_PT_PARAM pParam)
-        {
-            return IsWindows ? OTAP_CMS_ISAPIPassThrough_Windows(iUserID, ref pParam) : OTAP_CMS_ISAPIPassThrough_Linux(iUserID, ref pParam);
-        }
-
-        // CN: CMS订阅消息
-        // EN: CMS subscribe message
-        public static bool OTAP_CMS_SubscribeMsg(OTAP_CMS_SUBSCRIBE_MSG_ENUM enumSubscribeMsg, nint pParam)
-        {
-            return IsWindows ? OTAP_CMS_SubscribeMsg_Windows(enumSubscribeMsg, pParam) : OTAP_CMS_SubscribeMsg_Linux(enumSubscribeMsg, pParam);
-        }
-
-        // CN: 开启OTAP协议设备报警上报
-        // EN: Start OTAP protocol device alarm reporting
-        public static bool OTAP_CMS_StartAlarm(int iUserID, ref OTAP_CMS_STARTALARM_PARAM pParam)
-        {
-            return IsWindows ? OTAP_CMS_StartAlarm_Windows(iUserID, ref pParam) : OTAP_CMS_StartAlarm_Linux(iUserID, ref pParam);
-        }
-
-        // CN: 配置简单存储订阅消息回调
-        // EN: Configure simple storage subscription message callback
-        public static bool OTAP_CMS_SubscribeStorageMsg(ref OTAP_CMS_STORAGE_SUBSCRIBE_CB_PARAM pParam)
-        {
-            return IsWindows ? OTAP_CMS_SubscribeStorageMsg_Windows(ref pParam) : OTAP_CMS_SubscribeStorageMsg_Linux(ref pParam);
-        }
-
-        // CN: 响应简单存储消息.
-        // EN: Respond to simple storage message.
-        public static bool OTAP_CMS_ResponseStorageMsg(int iUserID, ref OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM pParam)
-        {
-            return IsWindows ? OTAP_CMS_ResponseStorageMsg_Windows(iUserID, ref pParam) : OTAP_CMS_ResponseStorageMsg_Linux(iUserID, ref pParam);
-        }
-
-        public static bool OTAP_CMS_SetSDKInitCfg(int enumType, nint lpInBuff)
-        {
-            return IsWindows ? OTAP_CMS_SetSDKInitCfg_Windows(enumType, lpInBuff) : OTAP_CMS_SetSDKInitCfg_Linux(enumType, lpInBuff);
-        }
-
-        public static bool OTAP_CMS_ResponseMsg(int lUserID, int enumMsg, ref OTAP_CMS_RESPONSE_MSG_PARAM pParam)
-        {
-            return IsWindows ? OTAP_CMS_ResponseMsg_Windows(lUserID, enumMsg, ref pParam) : OTAP_CMS_ResponseMsg_Linux(lUserID, enumMsg, ref pParam);
-        }
         #endregion
-        // CN: 设备上线回调. 相关结构体参见 ::tagOTAP_CMS_DEV_REG_INFO.
-        // EN: Device online callback. See related structure ::tagOTAP_CMS_DEV_REG_INFO.
-        public const int ENUM_OTAP_CMS_DEV_ON = 0;
 
-        // CN: 设备下线回调
-        // EN: Device offline callback
-        public const int ENUM_OTAP_CMS_DEV_OFF = 1;
-
-        /// <summary>
-        /// 配置数据收发参数配置(如接收超时时间). 
-        /// </summary>
-        public const int ENUM_OTAP_CMS_SEND_RECV_PARAM = 1;
-
-        // CN: 设备ping请求回调
-        public const int ENUM_OTAP_CMS_DEV_DAS_PINGREQ_CALLBACK = 3;
-
-        // CN: 设备地址发生变化(也表示设备已在线)
-        public const int ENUM_OTAP_CMS_ADDRESS_CHANGED = 2;
-
-        // CN: 设备认证回调. 相关结构体参见 ::tagOTAP_CMS_DEV_REG_INFO.
-        // EN: Device authentication callback. See related structure ::tagOTAP_CMS_DEV_REG_INFO.
-        public const int ENUM_OTAP_CMS_DEV_AUTH = 3;
-
-        // CN: OTAP设备Sessionkey回调
-        // EN: OTAP device Sessionkey callback
-        public const int ENUM_OTAP_CMS_DEV_SESSIONKEY = 4;
-
-        // CN: SessionKey请求(默认不回调), 负载均衡模式下需要调用 OTAP_CMS_SetSDKLocalCfg 接口开启
-        // EN: SessionKey request (default no callback), needs to call OTAP_CMS_SetSDKLocalCfg interface to enable in load balancing mode
-        public const int ENUM_OTAP_CMS_DEV_SESSIONKEY_REQ = 6;
-
-        // CN: 设备超时时间内重注册(也表示设备已在线)
-        public const int ENUM_OTAP_CMS_DEV_DAS_REREGISTER = 7;
-
-        // CN: 注册心跳
-        public const int ENUM_OTAP_CMS_DEV_DAS_PINGREQ = 8;
-
-        // CN: OTAPKey错误
-        public const int ENUM_OTAP_CMS_DEV_DAS_OTAPKEY_ERROR = 9;
-
-        // CN: 设备注册SessionKey错误
-        public const int ENUM_OTAP_CMS_DEV_SESSIONKEY_ERROR = 10;
-
-        // CN: OTAP协议设备,AMS报警的SessionKey回调
-        public const int ENUM_OTAP_CMS_DEV_ALARM_SESSIONKEY = 12;
-
-        // CN: 设备请求DAS地址
-        // EN: Device request DAS address
-        public const int ENUM_OTAP_CMS_DAS_REQ = 13;
-
-        public const int ENUM_OTAP_CMS_ATTRIBUTE_REPORT_MODEL = 0;  //< \~chinese 设备->平台. 原语属性上报
-        public const int ENUM_OTAP_CMS_SERVICE_QUERY_MODEL = 1;  //< \~chinese 设备->平台. 原语上行操作
-        public const int ENUM_OTAP_CMS_EVENT_REPORT_MODEL = 2;  //< \~chinese 设备->平台. CMS报警上报
-
-        public const int ENUM_OTAP_CMS_ATTR_REPORT_REPLY = 0;   //< \~chinese 平台->设备,平台响应设备主动上报属性消息
-        public const int ENUM_OTAP_CMS_SERVICE_QUERY_REPLY = 1; //< \~chinese 平台->设备,平台响应设备主动向平台查询消息
+        //开启关闭监听
+        public const int ENUM_UNKNOWN = -1;
+        public const int ENUM_DEV_ON = 0;             //设备上线回调
+        public const int ENUM_DEV_OFF = 1;               //设备下线回调
+        public const int ENUM_DEV_ADDRESS_CHANGED = 2;     //设备地址发生变化
+        public const int ENUM_DEV_AUTH = 3;       //Ehome5.0设备认证回调
+        public const int ENUM_DEV_SESSIONKEY = 4;    //Ehome5.0设备Sessionkey回调
+        public const int ENUM_DEV_DAS_REQ = 5;      //Ehome5.0设备重定向请求回调
+        public const int ENUM_DEV_SESSIONKEY_REQ = 6;//EHome5.0设备sessionkey请求回调
+        public const int ENUM_DEV_DAS_REREGISTER = 7;//设备重注册回调
+        public const int ENUM_DEV_DAS_PINGREO = 8;    //设备心跳
+        public const int MAX_DEVNAME_LEN = 32;
+        public const int NET_EHOME_LOCAL_CFG_DEV_DAS_PINGREQ_CALLBACK = 7;
 
         //OpenSSL路径
-        public const int ENUM_OTAP_CMS_INIT_CFG_LIBEAY_PATH = 0;   //< \~chinese 设置OpenSSL的libeay32.dll/libcrypto.so/libcrypto-1_1-x64.dll/libcrypto-1_1.dll/libcrypto-3.dll/libcrypto-3-x64.dll/libcrypto.so.1.1/libcrypto.so.3所在路径
-        public const int ENUM_OTAP_CMS_INIT_CFG_SSLEAY_PATH = 1;   //< \~chinese 设置OpenSSL的ssleay32.dll/libssl.so/libssl.so.3/libssl-1_1-x64.dll/libssl-1_1.dll/libssl-3-x64.dll/libssl-3.dll/libssl.so.1.1所在路径
+        public const int NET_EHOME_CMS_INIT_CFG_LIBEAY_PATH = 0;   //设置OpenSSL的libeay32.dll/libcrypto.so所在路径
+        public const int NET_EHOME_CMS_INIT_CFG_SSLEAY_PATH = 1;   //设置OpenSSL的ssleay32.dll/libssl.so所在
 
-        public const int ENUM_OTAP_CMS_INIT_CFG_LIBICONV_PATH = 2; //< \~chinese 设置字符转码编码库libiconv2.dll/libiconv2.so所在路径
-        public const int ENUM_OTAP_CMS_INIT_CFG_ZLIB_PATH = 3; //< \~chinese 设置压缩库zlib1.dll/libz.so所在路径
+        public const int NET_EHOME_GET_DEVICE_INFO = 1; //获取设备信息
 
-        public const int ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY = 1;//< \~chinese 设备->平台,订阅上传查询消息
-        public const int ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT = 2;//< \~chinese 设备->平台,订阅上传结果上报消息
-        public const int ENUM_OTAP_CMS_STORAGE_DOWNLOAD_QUERY = 3;//< \~chinese 设备->平台. [OTAP]订阅下载查询消息
+        //通道类型
+        public const int DEMO_CHANNEL_TYPE_INVALID = -1;
+        public const int DEMO_CHANNEL_TYPE_ANALOG = 0;
+        public const int DEMO_CHANNEL_TYPE_IP = 1;
+        public const int DEMO_CHANNEL_TYPE_ZERO = 2; //零通道
 
-        public const int ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY_REPLY = 1;//< \~chinese 平台->设备,响应上传查询消息
-        public const int ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT_REPLY = 2;//< \~chinese 平台->设备,响应上传结果上报消息
-        public const int ENUM_OTAP_CMS_STORAGE_DOWNLOAD_QUERY_REPLY = 3;//< \~chinese 平台->设备. [OTAP]响应下载查询消息
+        public const int MAX_SERIALNO_LEN = 128;    //序列号最大长度
+        public const int MAX_PHOMENUM_LEN = 32;     //手机号码最大长度
+        public const int MAX_DEVICE_NAME_LEN = 32;  //设备名称长度
+        public const int NET_EHOME_GET_GPS_CFG = 20; //获取GPS参数
+        public const int NET_EHOME_SET_GPS_CFG = 21; //设置GPS参数
+        public const int NET_EHOME_GET_PIC_CFG = 22; //获取OSD显示参数
+        public const int NET_EHOME_SET_PIC_CFG = 23; //设置OSD显示参数
+        public const int MAX_EHOME_PROTOCOL_LEN = 1500;
+        public const int IPADDRESS_LENGTH = 128;//IP地址数组的长度
 
-        // CN: AMS报警消息结构体
-        // EN: AMS alarm message structure
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
-        public struct OTAP_AMS_ALARM_MSG
+        public const String CONFIG_GET_PARAM_XML = "<Params>\r\n<ConfigCmd>{0}</ConfigCmd>\r\n<ConfigParam1>{1}</ConfigParam1>\r\n<ConfigParam2>{2}</ConfigParam2>\r\n<ConfigParam3>{3}</ConfigParam3>\r\n<ConfigParam4>{4}</ConfigParam4>\r\n</Params>\r\n";
+        public const String CONFIG_SET_PARAM_XML = "<Params>\r\n<ConfigCmd>{0}</ConfigCmd>\r\n<ConfigParam1>{1}</ConfigParam1>\r\n<ConfigParam2>{2}</ConfigParam2>\r\n<ConfigParam3>{3}</ConfigParam3>\r\n<ConfigParam4>{4}</ConfigParam4>\r\n<ConfigXML>{5}</ConfigXML>\r\n</Params>\r\n";
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_CONFIG
         {
-            // CN: 报警类型
-            // EN: Alarm type
-            public byte byAlarmType;
+            public IntPtr pCondBuf;    //[in]，条件数据指针，如表示通道号等
+            public uint dwCondSize; //[in]，pCondBuf指向的数据大小
+            public IntPtr pInBuf;        //[in]，设置时需要用到，指向结构体的指针
+            public uint dwInSize;    //[in], pInBuf指向的数据大小
+            public IntPtr pOutBuf;        //[out]，获取时需要用到，指向结构体的指针，内存由上层分配
+            public uint dwOutSize;    //[in]，获取时需要用到，表示pOutBuf指向的内存大小， 
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 40, ArraySubType = UnmanagedType.U1)]
+            public byte[] byRes;    //保留
 
-            // CN: 数据类型
-            // EN: Data type
-            public byte byDataType;
-
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-            // CN: 保留
-            // EN: Reserved
-            public byte[] byRes;
-
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
-            // CN: 设备ID
-            // EN: Device ID
-            public string szDeviceID;
-
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 512)]
-            // CN: 报警主题
-            // EN: Alarm topic
-            public string szAlarmTopic;
-
-            // CN: 报警信息长度
-            // EN: Alarm information length
-            public uint dwAlarmInfoLen;
-
-            // CN: 报警信息缓冲区
-            // EN: Alarm information buffer
-            public nint pAlarmInfoBuf;
-
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
-            // CN: 保留
-            // EN: Reserved
-            public byte[] byRes1;
+            public void Init()
+            {
+                byRes = new byte[40];
+            }
         }
 
-        // CN: 加密类型
-        // EN: Encryption type
-        public enum OTAP_CMS_CRYPTO_TYPE_ENUM
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_DEVICE_INFO
         {
-            // CN: SECP 160 R1
-            // EN: SECP 160 R1
-            ENUM_OTAP_CMS_SECP_160_R1 = 0,
-            // CN: SECP 224 R1
-            // EN: SECP 224 R1
-            ENUM_OTAP_CMS_SECP_224_R1 = 1,
-            // CN: SECP 256 R1
-            // EN: SECP 256 R1
-            ENUM_OTAP_CMS_SECP_256_R1 = 2,
-            // CN: SECP 384 R1
-            // EN: SECP 384 R1
-            ENUM_OTAP_CMS_SECP_384_R1 = 3,
-            // CN: SECP 521 R1
-            // EN: SECP 521 R1
-            ENUM_OTAP_CMS_SECP_521_R1 = 4,
-        };
+            public int dwSize;                //结构体大小
+            public uint dwChannelNumber;     //模拟视频通道个数
+            public uint dwChannelAmount;    //总视频通道数（模拟+IP）
+            public uint dwDevType;            //设备类型，1-DVR，3-DVS，30-IPC，40-IPDOME，其他值参考海康NetSdk设备类型号定义值
+            public uint dwDiskNumber;        //设备当前硬盘数
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_SERIALNO_LEN)]
+            public byte[] sSerialNumber;        //设备序列号
+            public uint dwAlarmInPortNum;    //模拟通道报警输入个数
+            public uint dwAlarmInAmount;    //设备总报警输入个数
+            public uint dwAlarmOutPortNum;    //模拟通道报警输出个数
+            public uint dwAlarmOutAmount;    //设备总报警输出个数
+            public uint dwStartChannel;        //视频起始通道号
+            public uint dwAudioChanNum;    //语音对讲通道个数
+            public uint dwMaxDigitChannelNum;    //设备支持的最大数字通道路数
+            public int dwAudioEncType;        //语音对讲音频格式，0- OggVorbis，1-G711U，2-G711A，3-G726，4-AAC，5-MP2L2,6-PCM
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_SERIALNO_LEN)]
+            public byte[] sSIMCardSN;    //车载设备扩展：SIM卡序列号
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_PHOMENUM_LEN)]
+            public byte[] sSIMCardPhoneNum;    //车载扩展：SIM卡手机号码
+            public uint dwSupportZeroChan;    // SupportZeroChan:支持零通道的个数：0-不支持，1-支持1路，2-支持2路，以此类推
+            public uint dwStartZeroChan;        //零通道起始编号，默认10000
+            public uint dwSmartType;            //智能类型，0-smart，1-专业智能；默认0-smart
+            public ushort wDevClass;            //设备的大类
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 158)]
+            public byte[] byRes;            //保留
 
-        // CN: CMS取流方式
-        // EN: CMS streaming mode
-        public enum OTAP_CMS_STREAMING_MODE_ENUM
-        {
-            // CN: 一般取流方式
-            // EN: General streaming mode
-            ENUM_OTAP_CMS_STREAMING_MODE_NORMAL = 0,
-            // CN: webRTC方式
-            // EN: webRTC mode
-            ENUM_OTAP_CMS_STREAMING_MODE_WEBRTC = 1
-        };
-
-        // CN: CMS设备配置类型
-        // EN: CMS device configuration type
-        public enum OTAP_CMS_CONFIG_DEV_ENUM
-        {
-            // CN: 属性获取
-            // EN: Attribute acquisition
-            OTAP_ENUM_OTAP_CMS_GET_MODEL_ATTR = 0,
-            // CN: 属性设置
-            // EN: Attribute setting
-            OTAP_ENUM_OTAP_CMS_SET_MODEL_ATTR = 1,
-            // CN: 下行操作
-            // EN: Downlink operation
-            OTAP_ENUM_OTAP_CMS_MODEL_SERVER_OPERATE = 2
+            public void Init()
+            {
+                sSerialNumber = new byte[MAX_SERIALNO_LEN];
+                sSIMCardSN = new byte[MAX_SERIALNO_LEN];
+                sSIMCardPhoneNum = new byte[MAX_PHOMENUM_LEN];
+                byRes = new byte[158];
+            }
         }
 
-        // CN: CMS设备信息参数
-        // EN: CMS device information parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_DEV_REG_INFO
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_VERSION_INFO
         {
-            [MarshalAs(UnmanagedType.Struct)]
-            public OTAP_IPADDRESS struDevAddr;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-            public byte[] byDeviceID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
-            public byte[] byDeviceName;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-            public byte[] byDeviceSerial;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-            public byte[] byDeviceFullSerial;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-            public byte[] byFirmwareVersion;
-            public uint dwDevType;
-            public uint dwManufacture;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
+            public int dwSize;                //结构体大小
+            public uint sSoftwareVersion;    //软件版本号
+            public uint sDSPSoftwareVersion;    //编码版本号
+            public uint sPanelVersion;        //面板版本号
+            public uint sHardwareVersion;    //硬件版本号    
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 40)]
+            public byte[] byRes;            //保留
+
+            public void Init()
+            { 
+                byRes = new byte[158];
+            }
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_DEV_REG_INFO
+        {
+            public int dwSize;
+            public int dwNetUnitType;            //根据EHomeSDK协议预留，目前没有意义
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = HCISUPPublic.MAX_DEVICE_ID_LEN)]
+            public byte[] byDeviceID; //设备ID
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 24)]
+            public byte[] byFirmwareVersion;    //固件版本
+            public HCISUPPublic.NET_EHOME_IPADDRESS struDevAdd;         //设备注册上来是，设备的本地地址
+            public int dwDevType;                  //设备类型
+            public int dwManufacture;              //设备厂家代码
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32)]
+            public byte[] byPassWord;             //设备登陆CMS的密码，由用户自行根据需求进行验证
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = HCISUPPublic.NET_EHOME_SERIAL_LEN/*12*/)]
+            public byte[] sDeviceSerial;    //设备序列号，数字序列号
+            public byte byReliableTransmission;
+            public byte byWebSocketTransmission;
+            public byte bySupportRedirect;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 6)]
+            public byte[] byDevProtocolVersion;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = HCISUPPublic.MAX_MASTER_KEY_LEN)]
             public byte[] bySessionKey;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-            public byte[] byIV;
-            [MarshalAs(UnmanagedType.Struct)]
-            public OTAP_IPADDRESS struRegAddr;
-            public byte byCompress;
-            public byte byDecompress;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-            public byte[] byRes1;
-            public uint dwDevTypeLen;
-            public uint dwDevTypeDisplayLen;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public byte[] byRes0;
-            public nint pDevType;
-            public nint pDevTypeDisplay;
-            public nint pDevProtocols;
-            public byte byDevProtocolVersion;
-            public byte byProtocolVersion;
-            public byte byDevProtocolsCount;
-            public byte byWakeupMode;
-            public byte byRegMode;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 283)]
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 27)]
             public byte[] byRes;
-
             public void Init()
             {
-                byDeviceID = new byte[256];
-                byDeviceName = new byte[128];
-                byDeviceSerial = new byte[256];
-                byDeviceFullSerial = new byte[256];
-                byFirmwareVersion = new byte[64];
-                bySessionKey = new byte[64];
-                byIV = new byte[32];
-                byRes1 = new byte[2];
-                byRes0 = new byte[4];
-                byRes = new byte[283];
+                byDeviceID = new byte[HCISUPPublic.MAX_DEVICE_ID_LEN];
+                byFirmwareVersion = new byte[24];
+                byPassWord = new byte[32];
+                sDeviceSerial = new byte[HCISUPPublic.NET_EHOME_SERIAL_LEN];
+                byDevProtocolVersion = new byte[6];
+                bySessionKey = new byte[HCISUPPublic.MAX_MASTER_KEY_LEN];
+                byRes = new byte[27];
             }
         }
 
-
-
-
-        // CN: CMS响应消息参数        
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_RESPONSE_MSG_PARAM
+        public struct NET_EHOME_IPADDRESS
         {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-            public byte[] szChildID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-            public byte[] szLocalIndex;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-            public byte[] szResourceType;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-            public byte[] szDomain;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-            public byte[] szIdentifier;
-            public nint pInBuf;
-            public uint dwInBufSize;
-            public uint dwSequence;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256, ArraySubType = UnmanagedType.I1)]
-            public byte[] byRes;
-
-            public void Init()
-            {
-                szChildID = new byte[32];
-                szLocalIndex = new byte[32];
-                szResourceType = new byte[64];
-                szDomain = new byte[64];
-                szIdentifier = new byte[64];
-                byRes = new byte[256];
-            }
-        }
-
-        // CN: IP结构体
-        // EN: IP structure
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_IPADDRESS
-        {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
             public char[] szIP;
-            public short wPort;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6, ArraySubType = UnmanagedType.I1)]
+            public Int16 wPort;     //端口
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 2)]
             public byte[] byRes;
-
             public void Init()
             {
+                wPort = 0;
                 szIP = new char[128];
-                byRes = new byte[6];
+                byRes = new byte[2];
             }
         }
 
-        // CN: DAS参数
-        // EN: DAS parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_DAS_INFO
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_DEV_REG_INFO_V12
         {
-            public OTAP_IPADDRESS struDevAddr;// CN: IP地址
-            // EN: IP address
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] byDomain;// CN: 域名
-            // EN: Domain name
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] byServerID;// CN: [in]ServerID. 用于标识不同的DAS服务
-            // EN: [in]ServerID. Used to identify different DAS services
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 248, ArraySubType = UnmanagedType.I1)]
-            public byte[] byRes;// CN: 保留字节大小
-            // EN: Reserved byte size
-
+            public NET_EHOME_DEV_REG_INFO struRegInfo;
+            public NET_EHOME_IPADDRESS struRegAddr;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_DEVNAME_LEN)]
+            public byte[] sDevName;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 224)]
+            public byte[] byRes;
             public void Init()
             {
-                byDomain = new char[64];
-                byServerID = new char[64];
-                byRes = new byte[248];
+                struRegInfo.Init();
+                struRegAddr.Init();
+                sDevName = new byte[MAX_DEVNAME_LEN];
+                byRes = new byte[224];
             }
         }
-        // CN: CMS监听参数
-        // EN: CMS listening parameters
-        public struct OTAP_CMS_LISTEN_PARAM
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_BLACKLIST_SEVER
         {
-            public OTAP_IPADDRESS struAddress;// CN: IP地址
-            // EN: IP address
-            public OTAP_CMS_RegisterCallback fnCB; // CN: 注册回调
-            // EN: Register callback
-            public nint pUserData;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
+            public HCISUPPublic.NET_EHOME_IPADDRESS struAdd;         //服务器地址
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = HCISUPPublic.NAME_LEN/*32*/)]
+            public byte[] byServerName;                            //服务器名称
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = HCISUPPublic.NAME_LEN/*32*/)]
+            public byte[] byUserName;                              //用户名
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = HCISUPPublic.NAME_LEN/*32*/)]
+            public byte[] byPassWord;                              //密码
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64/*64*/)]
             public byte[] byRes;
+            public void Init()
+            {
+                struAdd.Init();
+                byServerName = new byte[HCISUPPublic.NAME_LEN];
+                byUserName = new byte[HCISUPPublic.NAME_LEN];
+                byPassWord = new byte[HCISUPPublic.NAME_LEN];
+                byRes = new byte[64];
+            }
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_PRI_PUB_KEY
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_SERVER_INFO
         {
-            public nint pPriKeyBuf;        // CN: [OUT]
-            // EN: [OUT]
-            public nint pPubKeyBuf;        // CN: [OUT]
-            // EN: [OUT]
-            public uint dwPriKeyBufLen;      // CN: [IN]
-            // EN: [IN]
-            public uint dwPubKeyBufLen;      // CN: [IN]
-            // EN: [IN]
-            public uint dwPriKeyLen;         // CN: [OUT]
-            // EN: [OUT]
-            public uint dwPubKeyLen;         // CN: [OUT]
-            // EN: [OUT]
-            public uint dwPubKeyType;        // CN: [IN]
-            // EN: [IN]
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 124)]
-            public byte[] byRes;             // CN: 保留字节
-            // EN: Reserved bytes
+            public int dwSize;
+            public int dwKeepAliveSec;            //心跳间隔（单位：秒,0:默认为15S）
+            public int dwTimeOutCount;         //心跳超时次数（0：默认为6）
+            public HCISUPPublic.NET_EHOME_IPADDRESS struTCPAlarmSever;      //报警服务器地址（TCP协议）
+            public HCISUPPublic.NET_EHOME_IPADDRESS struUDPAlarmSever;        //报警服务器地址（UDP协议）
+            public int dwAlarmServerType;        //报警服务器类型0-只支持UDP协议上报，1-支持UDP、TCP两种协议上报
+            public HCISUPPublic.NET_EHOME_IPADDRESS struNTPSever;            //NTP服务器地址
+            public int dwNTPInterval;            //NTP校时间隔（单位：秒）
+            public HCISUPPublic.NET_EHOME_IPADDRESS struPictureSever;       //图片服务器地址
+            public int dwPicServerType;        //图片服务器类型图片服务器类型，1-VRB图片服务器，0-Tomcat图片服务
+            public NET_EHOME_BLACKLIST_SEVER struBlackListServer;    //黑名单服务器
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128/*128*/)]
+            public byte[] byRes;
+            public void Init()
+            {
+                struTCPAlarmSever.Init();
+                struUDPAlarmSever.Init();
+                struNTPSever.Init();
+                struPictureSever.Init();
+                struBlackListServer.Init();
+                byRes = new byte[128];
+            }
         }
 
-        // CN: 开启实时取流输入参数
-        // EN: Start live streaming input parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STARTLIVESTREAMING_PARAM_IN
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_SERVER_INFO_V50
         {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
-            public byte[] szServerSessionID;
-            public uint dwChannel;
-            public uint dwStreamType;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
-            public byte[] szServerIPv4;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
-            public byte[] szServerIPv6;
-            public ushort wServerTcpPort;
-            public ushort wServerUdpPort;
-            public ushort wServerTLSPort;
-            public byte byMode;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1, ArraySubType = UnmanagedType.I1)]
+            public int dwSize;
+            public int dwKeepAliveSec;            //心跳间隔（单位：秒,0:默认为15S）
+            public int dwTimeOutCount;         //心跳超时次数（0：默认为6）
+            public HCISUPPublic.NET_EHOME_IPADDRESS struTCPAlarmSever;      //报警服务器地址（TCP协议）
+            public HCISUPPublic.NET_EHOME_IPADDRESS struUDPAlarmSever;        //报警服务器地址（UDP协议）
+            public int dwAlarmServerType;        //报警服务器类型0-只支持UDP协议上报，1-支持UDP、TCP两种协议上报
+            public HCISUPPublic.NET_EHOME_IPADDRESS struNTPSever;            //NTP服务器地址
+            public int dwNTPInterval;            //NTP校时间隔（单位：秒）
+            public HCISUPPublic.NET_EHOME_IPADDRESS struPictureSever;       //图片服务器地址
+            public int dwPicServerType;        //图片服务器类型图片服务器类型，1-VRB图片服务器，0-Tomcat图片服务,2-云存储3,3-KMS
+            public NET_EHOME_BLACKLIST_SEVER struBlackListServer;    //黑名单服务器
+            public HCISUPPublic.NET_EHOME_IPADDRESS struRedirectSever;       //Redirect Server
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64)]
+            public byte[] byClouldAccessKey; //云存储AK
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 64)]
+            public byte[] byClouldSecretKey; //云存储SK
+            public byte byClouldHttps;//云存储HTTPS使能 1-HTTPS 0-HTTP
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 3)]
             public byte[] byRes1;
-            public nint pPubKey;
-            public uint dwPubKeyLen;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 252, ArraySubType = UnmanagedType.I1)]
-            public byte[] byRes;
-        }
-
-        // CN: CMS开启实时取流输出参数
-        // EN: CMS start live streaming output parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STARTLIVESTREAMING_PARAM_OUT
-        {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.I1)]
-            public byte[] szDevSessionID;
-            public int iAsyncHandle;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
-            public byte[] byRes;
-        }
-
-        // CN: CMS设备配置参数
-        // EN: CMS device configuration parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_CONFIG_DEV_PARAM
-        {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
-            public char[] szChildID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
-            public char[] szLocalIndex;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szResourceType;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szDomain;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szIdentifier;
-            public nint pInBuf;
-            public nint pOutBuf;
-            public uint dwInBufSize;
-            public uint dwOutBufSize;
-            public int iAsyncHandle;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 252)]
+            public int dwAlarmKeepAliveSec;    //报警心跳间隔（单位：秒,0:默认为30s）
+            public int dwAlarmTimeOutCount;    //报警心跳超时次数（0：默认为3）
+            public int dwClouldPoolId;         //云存储PoolId
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 368)]
             public byte[] byRes;
 
             public void Init()
             {
-                szChildID = new char[32];
-                szLocalIndex = new char[32];
-                szResourceType = new char[64];
-                szDomain = new char[64];
-                szIdentifier = new char[64];
-
-                byRes = new byte[252];
+                struTCPAlarmSever.Init();
+                struUDPAlarmSever.Init();
+                struNTPSever.Init();
+                struPictureSever.Init();
+                struBlackListServer.Init();
+                struRedirectSever.Init();
+                byClouldAccessKey = new byte[64];
+                byClouldSecretKey = new byte[64];
+                byRes1 = new byte[3];
+                byRes = new byte[368];
             }
         }
 
-        // CN: CMS开启语音对讲输入参数
-        // EN: CMS start voice intercom input parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STARTVOICE_IN
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_CMS_LISTEN_PARAM
         {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.I1)]
-            public byte[] szServerSessionID;
-
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string szServerIPv4;
-
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string szServerIPv6;
-
-            public nint pPubKey;
-            public uint dwPubKeyLen;
-            public uint dwChannel;
-            public ushort wServerTcpPort;
-            public ushort wServerUdpPort;
-            public ushort wServerTlsPort;
-            public byte byMode;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-            public byte[] byRes1;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 236)]
+            public HCISUPPublic.NET_EHOME_IPADDRESS struAddress; //Local Listen Information, when IP is 0.0.0.0，it is local address by default; when with multiple NICs, it is the first one got from the operating system by default 
+            public DEVICE_REGISTER_CB fnCB; //Device Register Callback Function 
+            public IntPtr pUserData;   // User Data 
+            public int dwKeepAliveSec; //心跳间隔（单位：秒,0:默认为30S）
+            public int dwTimeOutCount; //心跳超时次数（0：默认为3）
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 24)]
             public byte[] byRes;
         }
 
-        // CN: CMS开启语音对讲输出参数
-        // EN: CMS start voice intercom output parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STARTVOICE_OUT
+        //预览请求
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_PREVIEWINFO_IN
         {
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
-            public string szDevSessionID;
+            public int iChannel;                        //通道号 
+            public int dwStreamType;                    // 码流类型，0-主码流，1-子码流, 2-第三码流
+            public int dwLinkMode;                        // 0：TCP方式,1：UDP方式,2: HRUDP方式
+            public HCISUPPublic.NET_EHOME_IPADDRESS struStreamSever;     //流媒体地址
+            public void Init()
+            {
+                struStreamSever.Init();
+            }
+        }
 
-            public int iAudioType;
-            public int iAsyncHandle;
+        public struct NET_EHOME_PREVIEWINFO_IN_V11
+        {
+            public int iChannel;
+            public int dwStreamType;//码流类型：0- 主码流，1- 子码流, 2- 第三码流
+            public int dwLinkMode;//0- TCP方式，1- UDP方式
+            public HCISUPPublic.NET_EHOME_IPADDRESS struStreamSever;
+            public byte byDelayPreview;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 31)]
+            public byte[] byRes;
 
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 120)]
+            public void Init()
+            {
+                struStreamSever.Init();
+                byRes = new byte[31];
+            }
+
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_PREVIEWINFO_OUT
+        {
+            public int lSessionID;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128)]
+            public byte[] byRes;
+
+            public void Init()
+            {
+                byRes = new byte[128];
+            }
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_PUSHSTREAM_IN
+        {
+            public int dwSize;
+            public int lSessionID;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128)]
+            public byte[] byRes;
+            public void Init()
+            {
+                byRes = new byte[128];
+            }
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_PUSHSTREAM_OUT
+        {
+            public int dwSize;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128)]
+            public byte[] byRes;
+            public void Init()
+            {
+                byRes = new byte[128];
+            }
+        }
+
+        public delegate bool DEVICE_REGISTER_CB(int lUserID, int dwDataType, IntPtr pOutBuffer, uint dwOutLen,
+                                                 IntPtr pInBuffer, uint dwInLen, IntPtr pUser);
+
+
+        //-----------------------------------------------------------------------------------------------------------
+        //语音对讲
+        public delegate void fVoiceDataCallBack(Int32 iVoiceHandle, char[] pRecvDataBuffer, uint dwBufSize, uint dwEncodeType, byte byAudioFlag, IntPtr pUser);
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_VOICETALK_PARA
+        {
+            public int bNeedCBNoEncData; //需要回调的语音类型：0-编码后语音(编码数据)，1-编码前语音(PCM数据)（语音转发时不支持）
+            public fVoiceDataCallBack cbVoiceDataCallBack; //用于回调音频数据的回调函数
+            public uint dwEncodeType;         //SDK赋值,SDK的语音编码类型,0- OggVorbis，1-G711U，2-G711A，3-G726，4-AAC，5-MP2L2，6-PCM
+            public IntPtr pUser;               //用户参数
+            public byte byVoiceTalk;    //0-语音对讲,1-语音转发
+            public byte byDevAudioEnc;  //输出参数，设备的音频编码方式 0- OggVorbis，1-G711U，2-G711A，3-G726，4-AAC，5-MP2L2，6-PCM
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 62)]
+            public byte[] byRes;//Reserved, set as 0. 0
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_VOICE_TALK_IN
+        {
+            public int dwVoiceChan;                   //通道号
+            public HCISUPPublic.NET_EHOME_IPADDRESS struStreamSever; //流媒体地址
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128)]
+            public byte[] byRes;
+            public void Init()
+            {
+                byRes = new byte[128];
+            }
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_VOICE_TALK_OUT
+        {
+            public Int32 lSessionID;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128)]
+            public byte[] byRes;
+
+            public void Init()
+            {
+                byRes = new byte[128];
+            }
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_PUSHVOICE_IN
+        {
+            public int dwSize;
+            public Int32 lSessionID;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128)]
+            public byte[] byRes;
+
+            public void Init()
+            {
+                byRes = new byte[128];
+            }
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_PUSHVOICE_OUT
+        {
+            public int dwSize;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 128)]
+            public byte[] byRes;
+
+            public void Init()
+            {
+                byRes = new byte[128];
+            }
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_XML_CFG
+        {
+            public IntPtr pCmdBuf;    //字符串格式命令
+            public uint dwCmdLen;   //pCmdBuf长度
+            public IntPtr pInBuf;     //输入数据
+            public uint dwInSize;   //输入数据长度
+            public IntPtr pOutBuf;    //输出缓冲
+            public uint dwOutSize;  //输出缓冲区长度
+            public uint dwSendTimeOut;  //数据发送超时时间,单位ms，默认5s
+            public uint dwRecvTimeOut;  //数据接收超时时间,单位ms，默认5s
+            public IntPtr pStatusBuf;     //返回的状态参数(XML格式),如果不需要,可以置NULL
+            public uint dwStatusSize;   //状态缓冲区大小(内存大小)
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 24)]
             public byte[] byRes;
         }
 
-        // CN: CMS停止语音对讲参数
-        // EN: CMS stop voice intercom parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STOPVOICE_PARAM
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_XML_REMOTE_CTRL_PARAM
         {
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
-            public string szDevSessionID;
-            // CN: 设备会话ID
-            // EN: Device session ID
-            public uint dwChannel;
-            // CN: 通道号
-            // EN: Channel number
-            public int iAsyncHandle;
-            // CN: 异步句柄
-            // EN: Asynchronous handle
-            public byte byMode;
-            // CN: 模式
-            // EN: Mode
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
-            public byte[] byRes1;
-            // CN: 保留字节
-            // EN: Reserved bytes
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 148)]
+            public uint dwSize;
+            public IntPtr lpInbuffer;          //input param buffer
+            public uint dwInBufferSize;      //size of input param buffer
+            public uint dwSendTimeOut;  //send time out,unit ms，default 5s
+            public uint dwRecvTimeOut;  //receive time out,unit ms，default 5s
+            public IntPtr lpOutBuffer;     //output buffer
+            public uint dwOutBufferSize;  //size of output buffer
+            public IntPtr lpStatusBuffer;   //status buffer,if not user can set NULL
+            public uint dwStatusBufferSize;  //status buffer size
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 16)]
             public byte[] byRes;
-            // CN: 保留字节
-            // EN: Reserved bytes
         }
 
-        // CN: CMS停止实时取流参数
-        // EN: CMS stop live streaming parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STOPLIVESTREAMING_PARAM
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_PTXML_PARAM
         {
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
-            public string szDevSessionID;
-            // CN: 若实时取流是流媒体服务取流,此字段为 devsessionid
-            // EN: If live streaming is from media service, this field is devsessionid
-            public uint dwChannel;
-            // CN: 实时取流通道
-            // EN: Live streaming channel
-            public int iAsyncHandle;
-            public byte byMode;
-            // CN: 0-视频实时流  1-音频实时流
-            // EN: 0-Video live stream  1-Audio live stream
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)]
-            public byte[] byRes1;
-            public OTAP_CMS_InterfaceAsyncCallback fnCB;
-            // CN: 接口使用的独立异步回调函数
-            // EN: Independent asynchronous callback function used by the interface
-            public nint pUserData;
-            // CN: 接口使用的独立异步回调函数对应的用户指针
-            // EN: User pointer corresponding to the independent asynchronous callback function used by the interface
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 112)]
-            public byte[] byRes;
-            // CN: 保留字节
-            // EN: Reserved bytes
-        }
-
-        public delegate bool OTAP_CMS_StopLiveStreamingCallback(int iUserID, OTAP_CMS_STREAMING_MODE_ENUM enumStreamingMode, nint pParam);
-
-        // CN: CMS接口异步回调信息
-        // EN: CMS interface asynchronous callback information
-        [StructLayout(LayoutKind.Sequential, Pack = 4)]
-        public struct OTAP_CMS_INTERFACE_ASYNC_CB_INFO
-        {
-            public int iUserID;
-            // CN: [out] 用户ID
-            // EN: [out] User ID
-            public int iAsyncHandle;
-            // CN: [out] 句柄
-            // EN: [out] Handle
-            public uint dwType;
-            // CN: [out] 异步模式下的回调类型, 详见 ::tagOTAP_CMS_INTERFACE_ASYNC_CB_ENUM
-            // EN: [out] Callback types in asynchronous mode, see details in ::tagOTAP_CMS_INTERFACE_ASYNC_CB_ENUM
-            public uint dwErrorNo;
-            // CN: [out] 错误码. 成功时为0
-            // EN: [out] Error code. It is 0 for success
-            public nint pOutBuffer;
-            // CN: [out] 设备响应数据
-            // EN: [out] Device response data
-            public uint dwOutLen;
-            // CN: [out] 设备响应数据的长度
-            // EN: Length of the device response data
-            public bool bSucc;
-            // CN: [out] 成功标识
-            // EN: Success identification
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 120)]
-            public byte[] byRes;
-            // CN: 保留字节
-            // EN: Reserved bytes
-        }
-
-        public delegate void OTAP_CMS_InterfaceAsyncCallback(ref OTAP_CMS_INTERFACE_ASYNC_CB_INFO pData, nint pUserData);
-
-        // CN: CMS ISAPI透传参数
-        // EN: CMS ISAPI pass-through parameters
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
-        public struct OTAP_CMS_ISAPI_PT_PARAM
-        {
-            public nint pRequestUrl;
-            // CN: 请求URL
-            // EN: Request URL
+            public IntPtr pRequestUrl;
             public uint dwRequestUrlLen;
-            // CN: 请求URL长度
-            // EN: Request URL length
-            public nint pCondBuffer;
-            // CN: 条件缓冲区
-            // EN: Condition buffer
+            public IntPtr pCondBuffer;
             public uint dwCondSize;
-            // CN: 条件缓冲区大小
-            // EN: Condition buffer size
-            public nint pInBuffer;
-            // CN: 输入缓冲区
-            // EN: Input buffer
+            public IntPtr pInBuffer;
             public uint dwInSize;
-            // CN: 输入缓冲区大小
-            // EN: Input buffer size
-            public nint pOutBuffer;
-            // CN: 输出缓冲区
-            // EN: Output buffer
+            public IntPtr pOutBuffer;
             public uint dwOutSize;
-            // CN: 输出缓冲区大小
-            // EN: Output buffer size
-            public uint dwReturnedLen;
-            // CN: 实际从设备接收到的数据长度
-            // EN: Actual data length received from the device
-            public uint dwRecvTimeOut;
-            // CN: 接收超时时间
-            // EN: Receive timeout
-            public int iHandle;
-            // CN: 异步句柄
-            // EN: Asynchronous handle
-            public OTAP_CMS_InterfaceAsyncCallback fnCB;
-            // CN: 异步回调函数
-            // EN: Asynchronous callback function
-            public nint pUserData;
-            // CN: 异步回调函数对应的用户指针
-            // EN: User pointer corresponding to the asynchronous callback function
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
+            public uint dwReturnedXMLLen;
+            public int dwRecvTimeOut; //超时时间, 默认5000ms
+            public int dwHandle;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 24)]
             public byte[] byRes;
-            // CN: 保留字节
-            // EN: Reserved bytes
 
             public void Init()
             {
-                byRes = new byte[8];
+                byRes = new byte[24];
             }
         }
 
-        // CN: CMS订阅消息回调信息
-        // EN: CMS subscribe message callback information
-        public struct OTAP_CMS_SUBSCRIBE_MSG_CB_INFO
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_EHOME_REMOTE_CTRL_PARAM
         {
-            public uint dwType;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public byte[] byRes1;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-            public byte[] szDevID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-            public byte[] szChildID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-            public byte[] szLocalIndex;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-            public byte[] szResourceType;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-            public byte[] szDomain;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-            public byte[] szIdentifier;
-            public nint pOutBuf;
-            public uint dwOutBufSize;
-            public uint dwSequence;
-            public nint pDeviceID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 252)]
+            uint dwSize;
+            IntPtr lpCondBuffer;        //条件参数缓冲区
+            uint dwCondBufferSize;    //条件参数缓冲区长度
+            IntPtr lpInbuffer;          //控制参数缓冲区
+            uint dwInBufferSize;      //控制参数缓冲区长度
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32)]
+            byte[] byRes;
+        }
+
+        //时间参数
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_EHOME_TIME
+        {
+            public short wYear;      //年
+            public byte byMonth;    //月
+            public byte byDay;      //日
+            public byte byHour;     //时
+            public byte byMinute;   //分
+            public byte bySecond;   //秒
+            public byte byRes1;
+            public short wMSecond;   //毫秒
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 2)]
+            public byte[] byRes;            //保留  
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_EHOME_REC_FILE_COND
+        {
+            public Int32 dwChannel;          //通道号，从1开始
+            public Int32 dwRecType;
+            public NET_EHOME_TIME struStartTime;      //开始时间
+            public NET_EHOME_TIME struStopTime;       //结束时间
+            public Int32 dwStartIndex;       //查询起始位置
+            public Int32 dwMaxFileCountPer;  //单次搜索最大文件个数，最大文件个数，需要确定实际网络环境，建议最大个数为8
+            public byte byLocalOrUTC;       //0-struStartTime和struStopTime中，表示的是设备本地时间，即设备OSD时间  1-struStartTime和struStopTime中，表示的是UTC时间
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 63)]
+            public byte[] byRes;            //保留 
+            public void Init()
+            {
+                byRes = new byte[63];
+            }
+        }
+
+
+        //查询接口
+        public const int MAX_FILE_NAME_LEN = 100;
+        //录像文件信息
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_EHOME_REC_FILE
+        {
+            public Int32 dwSize;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_FILE_NAME_LEN)]
+            public byte[] sFileName;   //文件名
+            public NET_EHOME_TIME struStartTime;                  //文件的开始时间
+            public NET_EHOME_TIME struStopTime;                   //文件的结束时间
+            public Int32 dwFileSize;                     //文件的大小
+            public Int32 dwFileMainType;                 //录像文件主类型
+            public Int32 dwFileSubType;                  //录像文件子类型
+            public Int32 dwFileIndex;                    //录像文件索引
+            public byte[] byTimeDiffH;                    //struStartTime、struStopTime与国际标准时间（UTC）的时差（小时），-12 ... +14,0xff表示无效
+            public byte[] byTimeDiffM;                    //struStartTime、struStopTime与国际标准时间（UTC）的时差（分钟），-30,0, 30, 45, 0xff表示无效
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 126)]
+            public byte[] byRes;
+
+            public void Init()
+            {
+                sFileName = new byte[MAX_FILE_NAME_LEN];
+                byRes = new byte[126];
+            }
+        }
+
+        public struct NET_EHOME_STOPPLAYBACK_PARAM
+        {
+            public Int32 lSessionID;
+            public Int32 lHandle;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 120)]
             public byte[] byRes;
         }
 
-        // CN: 设置订阅回调
-        // EN: Set subscribe callback
-        public delegate bool OTAP_CMS_SubscribeMsgCallback(int iUserID, ref OTAP_CMS_SUBSCRIBE_MSG_CB_INFO pParam, nint pUserData);
-
-        // CN: 设置订阅消息回调参数
-        // EN: Set subscribe message callback parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_SET_SUBSCRIBEMSG_CB_PARAM
+        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential, Size = 512)]
+        public struct PLAYBACK_BY_NAME
         {
-            public OTAP_CMS_SubscribeMsgCallback fnCB;
-            // CN: 订阅消息回调
-            // EN: Subscribe message callback
-            public nint pUserData;
-            // CN: 用户指针
-            // EN: User pointer
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-            public byte[] byRes;
-            // CN: 保留字节
-            // EN: Reserved bytes
+            [System.Runtime.InteropServices.MarshalAsAttribute(System.Runtime.InteropServices.UnmanagedType.ByValArray, SizeConst = MAX_FILE_NAME_LEN, ArraySubType = System.Runtime.InteropServices.UnmanagedType.I1)]
+            public char[] szFileName;   //回放的文件名
+            public Int32 dwSeekType;                      //0-按字节长度计算偏移量  1-按时间（秒数）计算偏移量
+            public Int32 dwFileOffset;                    //文件偏移量，从哪个位置开始下载，如果dwSeekType为0，偏移则以字节计算，为1则以秒数计算
+            public Int32 dwFileSpan;                      //下载的文件大小，为0时，表示下载直到该文件结束为止，如果dwSeekType为0，大小则以字节计算，为1则以秒数计算
+            public void Init()
+            {
+                szFileName = new char[MAX_FILE_NAME_LEN];
+                dwSeekType = 0;
+                dwFileOffset = 0;
+                dwFileSpan = 0;
+            }
         }
 
-        // CN: 设置事件Topic过滤主题
-        // EN: Set event Topic filter
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_SUBSCRIBEMSG_TOPIC_FILTER_PARAM
+        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential, Size = 512)]
+        public struct PLAYBACK_BY_TIME
         {
-            public nint pTopicFilter;
-            // CN: Topic过滤
-            // EN: Topic filter
-            public uint dwTopicFilterLen;
-            // CN: Topic过滤长度
-            // EN: The length of pTopicFilter
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 124)]
+            public NET_EHOME_TIME struStartTime;  // 按时间回放的开始时间
+            public NET_EHOME_TIME struStopTime;   // 按时间回放的结束时间
+            public byte byLocalOrUTC;           //0-设备本地时间，即设备OSD时间  1-UTC时间
+            public byte byDuplicateSegment;     //byLocalOrUTC为1时无效 0-重复时间段的前段 1-重复时间段后
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_EHOME_PLAYBACK_INFO_IN
+        {
+            public Int32 dwSize;
+            public Int32 dwChannel;                    //回放的通道号
+            public byte byPlayBackMode;               //回放下载模式 0－按名字 1－按时间
+            public byte byStreamPackage;              //回放码流类型，设备端发出的码流格式 0－PS（默认） 1－RTP
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 2)]
             public byte[] byRes;
-            // CN: 保留字节
-            // EN: Reserved bytes
+            public unionPlayBackMode uPlayBackMode;
+            public NET_EHOME_IPADDRESS struStreamSever;    //流媒体地址
+
+            public void Init()
+            {
+                dwSize = 0;
+                dwChannel = 0;
+                byPlayBackMode = 0;
+                byStreamPackage = 0;
+                byRes = new byte[2];
+                uPlayBackMode.Init();
+                struStreamSever.Init();
+            }
+        }
+
+        [StructLayoutAttribute(LayoutKind.Explicit, Size = 512)]
+        public struct unionPlayBackMode
+        {
+            [FieldOffset(0)]
+            public PLAYBACK_BY_NAME struPlayBackbyName;
+            [FieldOffset(0)]
+            public PLAYBACK_BY_TIME struPlayBackbyTime;
+            public void Init()
+            {
+                struPlayBackbyName.Init();
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_EHOME_PLAYBACK_INFO_IN_NAME
+        {
+            public Int32 dwSize;
+            public Int32 dwChannel;                    //回放的通道号
+            public byte byPlayBackMode;               //回放下载模式 0－按名字 1－按时间
+            public byte byStreamPackage;              //回放码流类型，设备端发出的码流格式 0－PS（默认） 1－RTP
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 2)]
+            public byte[] byRes;
+            public PLAYBACK_BY_NAME struPlayBackbyName;
+            public NET_EHOME_IPADDRESS struStreamSever;    //流媒体地址
+
+            public void Init()
+            {
+                dwSize = 0;
+                dwChannel = 0;
+                byPlayBackMode = 0;
+                byStreamPackage = 0;
+                byRes = new byte[2];
+                struPlayBackbyName.Init();
+                struStreamSever.Init();
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_EHOME_PLAYBACK_INFO_IN_TIME
+        {
+            public int dwSize;
+            public int dwChannel;                    //回放的通道号
+            public byte byPlayBackMode;               //回放下载模式 0－按名字 1－按时间
+            public byte byStreamPackage;              //回放码流类型，设备端发出的码流格式 0－PS（默认） 1－RTP
+            public byte byLinkMode;                 //0：TCP，1：UDP
+            public byte byLinkEncrypt;
+            public PLAYBACK_BY_TIME struPlayBackbyTime;
+            public NET_EHOME_IPADDRESS struStreamSever;    //流媒体地址
+
+            public void Init()
+            {
+                struStreamSever.Init();
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_EHOME_PUSHPLAYBACK_IN
+        {
+            public int dwSize;
+            public int lSessionID;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 32)]
+            public byte[] byKeyMD5;//码流加密秘钥,两次MD5
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 96)]
+            public byte[] byRes;
+
+            public void Init()
+            {
+                byKeyMD5 = new byte[32];
+                byRes = new byte[96];
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_EHOME_PUSHPLAYBACK_OUT
+        {
+            public int dwSize;
+            public int lHandle;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 124)]
+            public byte[] byRes;
 
             public void Init()
             {
@@ -1060,294 +934,30 @@ namespace GrpcService.HKSDK
             }
         }
 
-        // CN: OTAP消息订阅
-        // EN: OTAP message subscription
-        public enum OTAP_CMS_SUBSCRIBE_MSG_ENUM : uint
-        {
-            ENUM_OTAP_CMS_SET_CALLBACK_FUN = 0,
-            ENUM_OTAP_CMS_SET_TOPIC_FILTER = 1,
-            ENUM_OTAP_CMS_CANCEL_TOPIC_FILTER = 2
-        }
-
-        // CN: CMS开启设备报警参数
-        // EN: CMS start device alarm parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STARTALARM_PARAM
-        {
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string szServerIPv4;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string szServerIPv6;
-            public ushort wServerTcpPort;
-            public ushort wServerTLSPort;
-            public uint dwKeepAliveSec;
-            public uint dwSubscribeInfoLen;
-            public nint pSubscribeInfo;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-            public byte[] byRes;
-        }
-
-
-
-        // CN: CMS简单存储响应类型
-        // EN: CMS simple storage response type
-        public enum OTAP_CMS_STORAGE_RESPONSE_TYPE_ENUM
-        {
-            ENUM_OTAP_CMS_STORAGE_UPLOAD_QUERY_REPLY = 1,
-            // CN: 输入参数  tagOTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM
-            // EN: Input parameter  tagOTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM
-            ENUM_OTAP_CMS_STORAGE_UPLOAD_REPORT_REPLY = 2,
-            // CN: 输入参数 空
-            // EN: Input parameter Empty
-            ENUM_OTAP_CMS_STORAGE_DOWNLOAD_QUERY_REPLY = 3
-            // CN: 输入参数  tagOTAP_CMS_DOWNLOAD_OBJECT_INPUT_PARAM
-            // EN: Input parameter  tagOTAP_CMS_DOWNLOAD_OBJECT_INPUT_PARAM
-        }
-
-        // CN: CMS存储订阅消息回调信息
-        // EN: CMS storage subscription message callback information
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO
-        {
-            public uint dwType;
-            // CN: 符合OTAP_CMS_STORAGE_SUBSCRIBE_TYPE_ENUM
-            // EN: Conforms to OTAP_CMS_STORAGE_SUBSCRIBE_TYPE_ENUM
-            public uint dwSequence;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
-            public char[] szDevID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
-            public char[] szChildID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
-            public char[] szLocalIndex;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szResourceType;
-            public nint pOutBuf;
-            public uint dwOutBufSize;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public byte[] byRes1;
-            public nint pDeviceID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 244)]
-            public byte[] byRes;
-
-            public void Init()
-            {
-                szDevID = new char[32];
-                szChildID = new char[32];
-                szLocalIndex = new char[32];
-                szResourceType = new char[64];
-                byRes1 = new byte[4];
-                byRes = new byte[244];
-            }
-        }
-
-        // CN: 存储消息回调
-        // EN: Storage message callback
-        public delegate void OTAP_CMS_StorageCallback(int iUserID, ref OTAP_CMS_STORAGE_SUBSCRIBE_MSG_CB_INFO pParam, nint pUserData);
-
-        // CN: CMS存储订阅回调参数
-        // EN: CMS storage subscription callback parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STORAGE_SUBSCRIBE_CB_PARAM
-        {
-            public OTAP_CMS_StorageCallback fnCB;
-            public nint pUserData;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
-            public byte[] byRes;
-        }
-
-        // CN: CMS存储上传输出参数
-        // EN: CMS storage upload output parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_UPLOAD_OBJECT_OUTPUT_PARAM
-        {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szDomain;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szIdentifier;
-            public byte byEncrypt;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 127)]
-            public byte[] byRes;
-
-            public void Init()
-            {
-                szDomain = new char[64];
-                szIdentifier = new char[64];
-                byRes = new byte[127];
-            }
-        }
-
-        // CN: CMS响应简单存储消息
-        // EN: CMS respond to simple storage message
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_STORAGE_RESPONSE_MSG_PARAM
-        {
-            public uint dwType;
-            public uint dwSequence;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
-            public char[] szChildID;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
-            public char[] szLocalIndex;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szResourceType;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szDomain;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szIdentifier;
-            public nint pInBuf;
-            public uint dwInBufSize;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-            public byte[] byRes;
-
-            public void Init()
-            {
-                szChildID = new char[32];
-                szLocalIndex = new char[32];
-                szResourceType = new char[64];
-                szDomain = new char[64];
-                szIdentifier = new char[64];
-                byRes = new byte[256];
-            }
-        }
-
-        // CN: CMS存储上传输入参数
-        // EN: CMS storage upload input parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_UPLOAD_OBJECT_INPUT_PARAM
-        {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
-            public char[] szStorageId;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szBucketName;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
-            public char[] szObjectKey;
-            public OTAP_IPADDRESS struAddress;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
-            public char[] szAccessKey;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
-            public char[] szSecretKey;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = UnmanagedType.U1)]
-            public char[] szRegion;
-            public uint bHttps;
-            public byte byEncrypt;
-            public byte byMethod;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-            public byte[] byRes1;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-            public byte[] byRes2;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public byte[] byRes3;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public byte[] byRes4;
-            public nint pCustomHeaders;
-            public nint pCustomUrl;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 104)]
-            public byte[] byRes;
-
-            public void Init()
-            {
-                szStorageId = new char[128];
-                szBucketName = new char[64];
-                szObjectKey = new char[128];
-                szAccessKey = new char[128];
-                szSecretKey = new char[128];
-                szRegion = new char[132];
-                byRes1 = new byte[2];
-                byRes2 = new byte[32];
-                byRes3 = new byte[4];
-                byRes4 = new byte[4];
-                byRes = new byte[104];
-            }
-        }
-
-        // CN: CMS简单存储查询输出参数
-        // EN: CMS simple storage query output parameters
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        public struct OTAP_CMS_REPORT_OBJECT_OUTPUT_PARAM
-        {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
-            public char[] szStorageId;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64, ArraySubType = UnmanagedType.U1)]
-            public char[] szBucket;
-            public uint dwResult;
-            public byte byEncrypt;
-            public byte byAlgorithm;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 226)]
-            public byte[] byRes;
-
-            public void Init()
-            {
-                szStorageId = new char[128];
-                szBucket = new char[64];
-                byRes = new byte[226];
-            }
-        }
-
-        // CN: CMS存储下载输入参数
-        // EN: CMS storage download input parameters
         [StructLayout(LayoutKind.Sequential)]
-        public struct OTAP_CMS_DOWNLOAD_OBJECT_INPUT_PARAM
+        public struct NET_EHOME_PLAYBACK_INFO_OUT
         {
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
-            public string szBucketName;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string szObjectKey;
-            public OTAP_IPADDRESS struAddress;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string szAccessKey;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string szSecretKey;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-            public string szRegion;
-            public uint dwExpires;
-            public uint bHttps;
-            public byte byEncrypt;
-            public byte byAlgorithm;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
-            public byte[] byRes1;
-            public nint pCustomUrl;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 176)]
+            public Int32 lSessionID;     //目前协议不支持，返回-1
+            public Int32 lHandle;  //设置了回放异步回调之后，该值为消息句柄，回调中用于标识
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 124)]
             public byte[] byRes;
         }
 
-        // CN: CMS存储下载输出参数
-        // EN: CMS storage download output parameters
-        [StructLayout(LayoutKind.Sequential)]
-        public struct OTAP_CMS_DOWNLOAD_OBJECT_OUTPUT_PARAM
-        {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128, ArraySubType = UnmanagedType.U1)]
-            public char[] szStorageId;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
-            public byte[] byRes;
+        public const int ENUM_SEARCH_TYPE_ERR = -1;
+        public const int ENUM_SEARCH_RECORD_FILE = 0;   //查找录像文件
+        public const int ENUM_SEARCH_PICTURE_FILE = 1;    //查找图片文件
+        public const int ENUM_SEARCH_FLOW_INFO = 2;    //流量查询
+        public const int ENUM_SEARCH_DEV_LOG = 3;   //设备日志查询
+        public const int ENUM_SEARCH_ALARM_HOST_LOG = 4;    //报警主机日志查询
 
-            public void Init()
-            {
-                szStorageId = new char[128];
-                byRes = new byte[128];
-            }
-        }
+        public const int ENUM_GET_NEXT_STATUS_SUCCESS = 1000; //成功读取到一条数据，处理完本次数据后需要再次调用FindNext获取下一条数据
+        public const int ENUM_GET_NETX_STATUS_NO_FILE = 1001;          //没有找到一条数据
+        public const int ENUM_GET_NETX_STATUS_NEED_WAIT = 1002;         //数据还未就绪，需等待，继续调用FindNext函数
+        public const int ENUM_GET_NEXT_STATUS_FINISH = 1003;           //数据全部取完
+        public const int ENUM_GET_NEXT_STATUS_FAILED = 1004;           //出现异常
+        public const int ENUM_GET_NEXT_STATUS_NOT_SUPPORT = 1005;       //设备不支持该操作，不支持的查询类型
 
-        // CN: CMS心跳参数
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public unsafe struct OTAP_CMS_SERVER_INFO
-        {
-            public uint dwKeepAliveSec;
-            public uint dwTimeOutCount;
 
-        }
-        //typedef struct {
-        //    unsigned int dwKeepAliveSec;
-        //    unsigned int dwTimeOutCount;
-        //    unsigned int dwAMSKeepAliveSec;
-        //    unsigned int dwAMSTimeOutCount;
-        //}
-        //OTAP_CMS_SERVER_INFO;
-        //超时时间
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public struct OTAP_CMS_SEND_RECV_PARAM
-        {
-            public uint dwRecvTimeOut;
-        }
-
-        public HCOTAPCMS() { }
+        public HCISUPCMS() { }
     }
 }

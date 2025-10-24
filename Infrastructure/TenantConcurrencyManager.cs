@@ -41,7 +41,7 @@ namespace GrpcService.Infrastructure
             {
                 return tenantId;
             }
-            return $"tenant-{deviceId}"; // 默认每个设备单独租户
+            return $"tenant-0"; // 没有租户的设备使用默认租户
         }
 
         private sealed class Releaser(SemaphoreSlim semaphore) : IDisposable

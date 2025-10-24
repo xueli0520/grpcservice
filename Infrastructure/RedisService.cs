@@ -1,7 +1,5 @@
 ﻿using GrpcService.Api;
 using StackExchange.Redis;
-using System;
-using System.Threading.Tasks;
 
 namespace GrpcService.Infrastructure
 {
@@ -56,6 +54,24 @@ namespace GrpcService.Infrastructure
         {
             var sub = _redisConnection.GetSubscriber();
             await sub.PublishAsync(channel, message);
+        }
+
+        public async Task PublishStreamAsync(NameValueEntry[] message)
+        {
+            try
+            {
+                var streamKey = "device:events:stream";
+                var db = redisConnection.GetDatabase();
+                var entryId = await db.StreamAddAsync(
+                    streamKey,
+                    message
+                );
+                _logger.LogDebug("设备事件已发布到Stream: {EventType}, ID={EntryId}", message[0].Value, entryId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "设备事件发布失败: {EventType}", message[0].Value);
+            }
         }
 
         // 订阅消息并处理
@@ -154,7 +170,7 @@ namespace GrpcService.Infrastructure
         public void Dispose()
         {
             _redisConnection?.Dispose();
-            GC.SuppressFinalize(this); 
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -55,9 +55,11 @@ builder.Services.AddSingleton<DeviceLoggerService>();
 builder.Services.AddSingleton<IDeviceLoggerService>(provider => provider.GetRequiredService<DeviceLoggerService>());
 
 builder.Services.AddSingleton<TenantConcurrencyManager>();
-builder.Services.AddSingleton<GrpcRequestQueueService>();
+builder.Services.AddSingleton<TenantAwareDeviceManager>();
+//builder.Services.AddSingleton<GrpcRequestQueueService>();
 builder.Services.AddSingleton<DeviceManager>();
-builder.Services.AddSingleton<SubscribeEvent>();
+builder.Services.AddSingleton<CMSService>();
+
 
 builder.WebHost.ConfigureKestrel((context, serverOptions) =>
 {
@@ -72,7 +74,7 @@ builder.WebHost.ConfigureKestrel((context, serverOptions) =>
     serverOptions.Limits.MaxConcurrentConnections = grpcConfig?.MaxConcurrentCalls ?? DefaultMaxConcurrentCalls;
     serverOptions.Limits.MaxConcurrentUpgradedConnections = grpcConfig?.MaxConcurrentCalls ?? DefaultMaxConcurrentCalls;
 });
-
+builder.Services.AddHostedService(provider => provider.GetRequiredService<CMSService>());
 builder.Services.AddHostedService<GrpcRequestQueueService>();
 builder.Services.AddHostedService<WhiteListWorker>();
 builder.Services.AddHostedService<RetryWorker>();
